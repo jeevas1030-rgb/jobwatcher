@@ -11,20 +11,11 @@ RUN npm run build
 FROM python:3.12-slim
 WORKDIR /app
 
-# System deps needed by Playwright/Chromium
-RUN apt-get update && apt-get install -y \
-    libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 \
-    libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 \
-    libxfixes3 libxrandr2 libgbm1 libasound2 \
-    libpango-1.0-0 libcairo2 libx11-6 libx11-xcb1 \
-    libxcb1 libxext6 fonts-liberation wget \
-    --no-install-recommends && rm -rf /var/lib/apt/lists/*
-
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install Playwright's Chromium browser
-RUN python -m playwright install chromium
+# Install Playwright Chromium + ALL system dependencies automatically
+RUN python -m playwright install --with-deps chromium
 
 COPY app.py scraper.py notifier.py ./
 COPY --from=frontend-build /build/static ./static/
