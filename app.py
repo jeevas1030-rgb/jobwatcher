@@ -20,14 +20,15 @@ def load_data() -> dict:
     if os.path.exists(DATA_FILE):
         with open(DATA_FILE) as f:
             return json.load(f)
+    # First run defaults — pull from env vars if available (Railway/Docker)
     return {
         "config": {
-            "bot_token": "",
-            "chat_id": "",
-            "gmail_user": "",
-            "gmail_pass": "",
-            "to_email": "",
-            "interval": 5,
+            "bot_token": os.environ.get("TELEGRAM_BOT_TOKEN", ""),
+            "chat_id": os.environ.get("TELEGRAM_CHAT_ID", ""),
+            "gmail_user": os.environ.get("GMAIL_USER", ""),
+            "gmail_pass": os.environ.get("GMAIL_PASS", ""),
+            "to_email": os.environ.get("TO_EMAIL", ""),
+            "interval": int(os.environ.get("POLL_INTERVAL", "5")),
         },
         "sites": [],   # list of {id, name, url, enabled, seen: [], last_checked, last_status}
         "log": [],     # list of {time, site_name, url, job}
