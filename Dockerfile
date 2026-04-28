@@ -11,11 +11,10 @@ RUN npm run build
 FROM python:3.12-slim
 WORKDIR /app
 
+# Install pip packages AND Playwright browser in one layer (busts cache)
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Install Playwright Chromium + ALL system dependencies automatically
-RUN python -m playwright install --with-deps chromium
+RUN pip install --no-cache-dir -r requirements.txt \
+    && python -m playwright install --with-deps chromium
 
 COPY app.py scraper.py notifier.py ./
 COPY --from=frontend-build /build/static ./static/
