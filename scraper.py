@@ -8,24 +8,29 @@ HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
         "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/123.0.0.0 Safari/537.36"
+        "Chrome/124.0.0.0 Safari/537.36"
     ),
-    "Accept-Language": "en-US,en;q=0.9",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-IN,en;q=0.9",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Connection": "keep-alive",
+    "Upgrade-Insecure-Requests": "1",
 }
 
 # ══════════════════════════════════════════════════════════════════════════════
-# SITES THAT LOAD JOBS VIA JAVASCRIPT — scraping their HTML gives only garbage
-# For these, we return [] cleanly. User should add Naukri/LinkedIn search URLs.
+# JS-ONLY SITES — these load jobs via JavaScript, HTML scraping gives garbage.
+# We block them immediately and return [] so no garbage alerts are sent.
+# Users should use Naukri search URLs for these companies instead.
 # ══════════════════════════════════════════════════════════════════════════════
-JS_ONLY_SITES = [
+JS_ONLY_DOMAINS = [
     "wipro.com", "careers.wipro.com",
     "accenture.com",
-    "careers.tcs.com",
+    "careers.tcs.com", "ibegin.tcs.com",
     "infosys.com", "career.infosys.com",
     "cognizant.com",
     "capgemini.com",
-    "careers.techmahindra.com",
-    "hcltech.com",
+    "techmahindra.com",
+    "hcltech.com", "hcl.com",
     "ltimindtree.com",
     "ibm.com",
     "amazon.jobs",
@@ -37,115 +42,96 @@ JS_ONLY_SITES = [
     "deloitte.com",
     "kpmg.com",
     "pwc.in",
+    "mphasis.com",
+    "mindtree.com",
+    "hexaware.com",
 ]
 
 # ══════════════════════════════════════════════════════════════════════════════
-# JOB TITLE KEYWORDS — text MUST contain one of these to be treated as a job
+# IT JOB KEYWORDS — title MUST contain at least one of these
 # ══════════════════════════════════════════════════════════════════════════════
 JOB_KEYWORDS = [
-    # Software roles
+    # Core dev roles
     "software engineer", "software developer", "sde", "swe",
-    "custom software engineer",
     "web developer", "web engineer",
     "full stack", "fullstack", "full-stack",
-    "frontend developer", "frontend engineer", "front-end developer",
-    "backend developer", "backend engineer", "back-end developer",
+    "frontend", "front-end", "front end",
+    "backend", "back-end", "back end",
     "application developer", "application engineer",
-    # Data / AI / ML
+    # Specialised
     "data scientist", "data analyst", "data engineer",
-    "machine learning engineer", "ml engineer",
-    "ai engineer", "ai developer",
-    "deep learning", "nlp engineer", "computer vision",
-    # DevOps / Cloud / QA
-    "devops engineer", "cloud engineer", "site reliability engineer",
-    "qa engineer", "test engineer", "sdet",
-    "automation tester", "automation engineer",
-    "quality assurance engineer", "quality assurance analyst",
-    # Mobile / Specific stacks
-    "android developer", "ios developer",
-    "flutter developer", "react native developer",
-    "react developer", "angular developer", "node developer",
+    "machine learning", "ml engineer", "ai engineer",
+    "devops", "cloud engineer", "site reliability",
+    "android developer", "ios developer", "mobile developer",
+    "flutter", "react native",
     "python developer", "java developer", ".net developer",
-    "ui developer", "ux designer", "ui/ux developer",
-    # Support roles
-    "product engineer", "platform engineer",
-    "solutions engineer", "support engineer",
+    "react developer", "angular developer", "node developer",
+    "ui developer", "ux designer", "ui/ux",
+    "qa engineer", "test engineer", "sdet", "automation engineer",
     "security analyst", "security engineer",
     "network engineer", "infrastructure engineer",
-    "database administrator", "sql developer",
-    "etl developer", "bi developer",
-    "api developer", "rpa developer",
-    "salesforce developer", "sap developer",
+    "sql developer", "database", "etl developer",
+    "salesforce", "sap developer", "rpa developer",
     "technical writer",
-    # Fresher / Entry-level titles
-    "software intern", "tech intern", "engineering intern",
-    "developer intern", "sde intern",
+    # Fresher / junior titles
+    "software intern", "developer intern", "tech intern",
+    "engineering intern", "sde intern",
     "software trainee", "developer trainee", "engineering trainee",
-    "technology trainee", "it trainee",
-    "fresher engineer", "fresher developer",
-    "graduate engineer trainee", "graduate trainee",
-    "junior software", "junior developer", "junior engineer",
-    "associate software", "associate developer", "associate engineer",
-    "entry level software", "entry-level developer",
+    "it trainee", "technology trainee",
+    "fresher", "fresh graduate",
+    "graduate engineer", "graduate trainee",
+    "junior developer", "junior engineer", "junior analyst",
+    "associate developer", "associate engineer", "associate analyst",
+    "entry level", "entry-level",
     "specialist programmer",
-    "technology analyst", "it analyst",
-    "business analyst",
-    "systems engineer",
-    "member of technical staff",
-    "technical analyst",
-    # Internship
-    "internship", "summer intern", "winter intern",
-    # Programs
-    "early career program", "campus hiring",
-    "new grad", "fresh graduate program",
-    "digital nurture", "launchpad", "ignite",
+    "technology analyst", "it analyst", "business analyst",
+    "systems engineer", "member of technical staff",
+    "technical analyst", "technical support",
+    # Common search terms that appear in real job titles
+    "programmer", "developer", "engineer",
 ]
 
 # ══════════════════════════════════════════════════════════════════════════════
-# GARBAGE PHRASES — if text contains ANY of these, reject immediately
+# GARBAGE — reject anything containing these
 # ══════════════════════════════════════════════════════════════════════════════
 GARBAGE = [
-    # Legal
-    "terms and conditions", "terms of use", "terms of service",
-    "cookie policy", "privacy policy", "cookie consent",
-    "functional cookie", "required cookie", "cookie manager",
-    "fraud awareness", "legal notice", "disclaimer",
-    "copyright", "gdpr", "data protection",
-    # Navigation
-    "home", "careers", "life at", "about us", "contact us",
-    "explore all jobs", "search jobs", "sign in", "sign up",
-    "log in", "register",
+    # Legal / Policy
+    "terms and conditions", "terms of use", "cookie policy",
+    "privacy policy", "cookie consent", "functional cookie",
+    "required cookie", "fraud awareness", "legal notice",
+    "disclaimer", "copyright",
+    # Nav / UI
+    "home", "log in", "sign in", "sign up", "register",
     "explore now", "know more", "read more", "learn more",
-    "view all", "show more", "load more",
-    "join now", "join our", "talent network",
-    "follow us", "connect with", "subscribe",
-    # Locations (nav dropdowns)
-    "wipro.com", "wipro locations",
-    "uk and ireland", "germany and austria",
-    "southern europe", "northern europe",
-    "benelux", "nordics",
-    "romania", "portugal", "poland", "switzerland",
+    "view all", "show all", "load more",
+    "join now", "join our", "talent network", "talent community",
+    "follow us", "connect with", "subscribe", "newsletter",
+    "search jobs", "filter", "sort by",
+    # Company pages (not job listings)
+    "life at", "about us", "contact us",
+    "our culture", "our values", "our mission",
+    "diversity", "inclusion", "sustainability",
+    "experienced professional", "early career",
+    # Locations (nav dropdown noise)
+    "uk and ireland", "germany and austria", "southern europe",
+    "benelux", "nordics", "romania", "portugal", "poland",
+    "switzerland", "locations",
     # Languages
     "français", "español", "deutsch", "italiano", "português",
-    "polski", "română", "العرب", "日本語", "简体中文",
-    "english (united", "french (", "spanish (", "german (",
-    # Corporate fluff
-    "our culture", "our values", "our mission", "our story",
-    "who we are", "why work", "why join", "why wipro",
-    "diversity", "inclusion", "sustainability",
-    "annual report", "investor", "life at wipro",
-    "experienced professionals", "early careers",
-    "talent community", "talent pool", "stay connected",
-    "e-posting", "lca ", "h1b ",
-    "because we care", "opportunity to reinvent",
-    "explore open roles", "match your interests",
-    "enhance your job search",
-    "h1b lca", "e-postings",
+    "polski", "română", "العرب", "日本語", "简体中文", "한국어",
+    "english (united", "french (canada",
+    # Company-specific
+    "wipro.com", "life at wipro",
+    # Naukri UI noise
+    "filters -", "filters-",
+    "search result", "jobs found",
+    "apply now", "save job",
 ]
 
-EXP_PATTERN = re.compile(
-    r'(\d+)\s*[-–to]+\s*(\d+)\s*(?:years?|yrs?)|'
-    r'(\d+)\s*\+?\s*(?:years?|yrs?)',
+EXP_RE = re.compile(
+    r'(\d+)\s*[-–to]+\s*(\d+)\s*(?:years?|yrs?|yr)|'
+    r'(\d+)\s*\+?\s*(?:years?|yrs?|yr)|'
+    r'\bfresher\b|\bentry.?level\b',
     re.IGNORECASE
 )
 
@@ -156,37 +142,20 @@ def fingerprint(text: str) -> str:
 
 def is_garbage(text: str) -> bool:
     lower = text.lower().strip()
-
-    # Length check — job titles are 10–120 chars
-    if len(lower) < 10 or len(lower) > 120:
+    if len(lower) < 8 or len(lower) > 150:
         return True
-
-    # Must have 2+ words
     if len(lower.split()) < 2:
         return True
-
-    # Contains any garbage phrase
     for phrase in GARBAGE:
         if phrase in lower:
             return True
-
-    # Mostly non-ASCII (language selector items)
     ascii_alpha = sum(1 for c in lower if c.isascii() and c.isalpha())
-    if ascii_alpha < 6:
+    if ascii_alpha < 5:
         return True
-
-    # Multi-line (scraped multiple elements)
     if "\n" in text or "\t" in text:
         return True
-
-    # Pure numbers / dates
     if re.match(r'^[\d\s/\-.,()]+$', lower):
         return True
-
-    # Ends with navigation arrows
-    if lower.rstrip().endswith((">>", ">", "›", "→", "↗", "...")):
-        return True
-
     return False
 
 
@@ -195,128 +164,125 @@ def matches_job(text: str) -> bool:
     return any(kw in lower for kw in JOB_KEYWORDS)
 
 
-def extract_experience(text: str):
-    m = EXP_PATTERN.search(text)
+def get_experience(text: str):
+    m = EXP_RE.search(text)
     if not m:
         return None
     if m.group(1) and m.group(2):
         return f"{m.group(1)}-{m.group(2)} yrs"
     if m.group(3):
         return f"{m.group(3)} yrs"
-    return None
+    return "Fresher"
 
 
 def is_fresher_friendly(exp: str) -> bool:
-    if not exp:
+    if not exp or exp == "Fresher":
         return True
     m = re.search(r'(\d+)', exp)
     return int(m.group(1)) <= 2 if m else True
 
 
-def scrape_jobs(url: str) -> tuple[list[dict], str | None]:
-    """
-    Main entry point.
-    - Blocks known JS-only career sites (returns [] immediately — no garbage).
-    - For all other sites, does aggressive HTML scraping.
-    """
-    host = urlparse(url).hostname or ""
+# ══════════════════════════════════════════════════════════════════════════════
+# NAUKRI SCRAPER — Naukri is the best IT fresher job source for India
+# Selectors tuned specifically for naukri.com search results
+# ══════════════════════════════════════════════════════════════════════════════
+def _scrape_naukri(url: str, soup: BeautifulSoup) -> list[dict]:
+    jobs = []
+    seen = set()
 
-    # Block JS-only sites — they never have jobs in their HTML
-    for js_site in JS_ONLY_SITES:
-        if js_site in host:
-            return [], None  # Clean empty — not an error, just unsupported
+    # Naukri job cards
+    selectors = [
+        "a.title",                          # Direct job title links
+        ".jobTuple h2 a",
+        ".job-title a",
+        "[class*='jobTitle'] a",
+        "article.jobTuple a.title",
+        ".list li h2 a",
+        ".srp-jobtuple-wrapper a.title",
+        "[class*='job-tuple'] h2 a",
+    ]
 
-    return _html_scrape(url)
+    for sel in selectors:
+        for el in soup.select(sel):
+            raw = el.get_text(separator=" ", strip=True)
+            if is_garbage(raw) or not matches_job(raw):
+                continue
+            title = re.sub(r'\s+', ' ', raw).strip()
+
+            # Grab experience from the card
+            card = el.find_parent(class_=re.compile(r'job|tuple|card', re.I))
+            card_text = card.get_text(" ", strip=True) if card else ""
+            exp = get_experience(card_text) or get_experience(title)
+            if exp and not is_fresher_friendly(exp):
+                continue
+
+            href = el.get("href", "")
+            if href and not href.startswith("http"):
+                href = urljoin(url, href)
+
+            fid = fingerprint(title)
+            if fid not in seen:
+                seen.add(fid)
+                jobs.append({
+                    "text": title,
+                    "id": fid,
+                    "experience": exp or "Not specified",
+                    "link": href or url,
+                })
+
+    return jobs
 
 
-def _html_scrape(url: str) -> tuple[list[dict], str | None]:
-    """
-    HTML scraper for sites that render job listings in static HTML.
-    Works great with: Naukri, Freshworks, Zoho, Razorpay, Persistent, etc.
-    """
-    try:
-        resp = requests.get(url, headers=HEADERS, timeout=20, allow_redirects=True)
-        resp.raise_for_status()
-    except requests.RequestException as e:
-        return [], str(e)
-
-    soup = BeautifulSoup(resp.text, "html.parser")
-
-    # Step 1: Nuke ALL non-content elements
+# ══════════════════════════════════════════════════════════════════════════════
+# GENERIC HTML SCRAPER (for Freshworks, Zoho, Razorpay, Persistent, etc.)
+# ══════════════════════════════════════════════════════════════════════════════
+def _scrape_generic(url: str, soup: BeautifulSoup) -> list[dict]:
+    # Remove noise elements
     for tag in soup(["script", "style", "nav", "footer", "header", "noscript",
                      "iframe", "svg", "form", "button", "input", "select",
-                     "label", "option", "textarea", "dialog", "aside",
-                     "meta", "link"]):
+                     "label", "option", "textarea", "dialog", "aside"]):
         tag.decompose()
 
-    # Step 2: Nuke noisy sections by class/id/role
-    for sel in [
-        "[class*='cookie']", "[class*='Cookie']",
-        "[class*='consent']", "[class*='banner']",
-        "[class*='modal']", "[class*='popup']",
-        "[class*='nav']", "[class*='Nav']",
-        "[class*='footer']", "[class*='Footer']",
-        "[class*='header']", "[class*='Header']",
-        "[class*='sidebar']", "[class*='language']",
-        "[class*='locale']", "[class*='social']",
-        "[role='navigation']", "[role='banner']",
-        "[role='contentinfo']", "[role='dialog']",
-    ]:
+    for sel in ["[class*='cookie']", "[class*='consent']", "[class*='banner']",
+                "[class*='modal']", "[class*='nav']", "[class*='footer']",
+                "[class*='header']", "[class*='sidebar']", "[class*='language']",
+                "[role='navigation']", "[role='banner']", "[role='contentinfo']"]:
         for el in soup.select(sel):
             el.decompose()
 
-    # Step 3: Find job elements using targeted selectors only
-    # (NO generic h2 a / h3 a — too noisy)
-    TARGETED_SELECTORS = [
-        # Explicit job title classes
+    SELECTORS = [
         "[class*='job-title']", "[class*='job_title']",
         "[class*='jobTitle']", "[class*='JobTitle']",
-        "[class*='position-title']", "[class*='position_title']",
-        "[class*='role-title']", "[class*='role_title']",
+        "[class*='position-title']", "[class*='role-title']",
         "[class*='opening-title']", "[class*='posting-title']",
-        "[class*='listing-title']", "[class*='result-title']",
-        "[class*='vacancy-title']", "[class*='requisition']",
-        # Data attributes used by ATSes
+        "[class*='listing-title']", "[class*='vacancy-title']",
         "[data-automation-id='jobTitle']",
         "[data-job-title]",
-        "[data-field='title']",
-        # Common card patterns
         ".job-card h2", ".job-card h3",
         ".job-listing h2", ".job-listing h3",
-        ".job-result h2", ".job-result h3",
-        ".opening h2", ".opening h3",
         "[class*='job-card'] h2", "[class*='job-card'] h3",
         "[class*='job-item'] h2", "[class*='job-item'] h3",
-        "[class*='job-row'] td:first-child",
-        # Table-based job boards
-        "table.jobs td:first-child a",
-        "article[class*='job'] h2", "article[class*='job'] h3",
+        "article[class*='job'] h2",
     ]
 
     seen = set()
     jobs = []
 
-    for sel in TARGETED_SELECTORS:
+    for sel in SELECTORS:
         for el in soup.select(sel):
             raw = el.get_text(separator=" ", strip=True)
-
-            if is_garbage(raw):
+            if is_garbage(raw) or not matches_job(raw):
                 continue
-            if not matches_job(raw):
-                continue
-
             title = re.sub(r'\s+', ' ', raw).strip()
 
-            # Check experience from parent context
             parent_text = el.parent.get_text(" ", strip=True) if el.parent else ""
-            exp = extract_experience(parent_text) or extract_experience(title)
+            exp = get_experience(parent_text) or get_experience(title)
             if exp and not is_fresher_friendly(exp):
                 continue
 
-            # Get link
             link = None
-            if el.name == "a" and el.get("href"):
-                link = el["href"]
+            if el.name == "a":
+                link = el.get("href", "")
             elif el.find("a"):
                 link = el.find("a").get("href", "")
             if link and not link.startswith("http"):
@@ -331,5 +297,40 @@ def _html_scrape(url: str) -> tuple[list[dict], str | None]:
                     "experience": exp or "Not specified",
                     "link": link or url,
                 })
+
+    return jobs
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# MAIN ENTRY POINT
+# ══════════════════════════════════════════════════════════════════════════════
+def scrape_jobs(url: str) -> tuple[list[dict], str | None]:
+    """
+    Smart scraper:
+    - Blocks JS-only sites immediately (returns [] — no garbage)
+    - Uses Naukri-specific parsing for naukri.com URLs
+    - Generic HTML scraper for everything else
+    """
+    host = urlparse(url).hostname or ""
+
+    # Block JS-only career sites — they never have jobs in static HTML
+    for js_domain in JS_ONLY_DOMAINS:
+        if js_domain in host:
+            return [], None  # Clean empty, no error
+
+    # Fetch the page
+    try:
+        resp = requests.get(url, headers=HEADERS, timeout=20, allow_redirects=True)
+        resp.raise_for_status()
+    except requests.RequestException as e:
+        return [], str(e)
+
+    soup = BeautifulSoup(resp.text, "html.parser")
+
+    # Route to the right parser
+    if "naukri.com" in host:
+        jobs = _scrape_naukri(url, soup)
+    else:
+        jobs = _scrape_generic(url, soup)
 
     return jobs, None
