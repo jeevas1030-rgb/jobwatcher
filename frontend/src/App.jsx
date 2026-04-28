@@ -331,9 +331,20 @@ export default function App() {
                   <div className="log-item__icon" aria-hidden="true">💼</div>
                   <div className="log-item__body">
                     <div className="log-item__job">{esc(l.job)}</div>
-                    <div className="log-item__site">🏢 {esc(l.site_name)}</div>
+                    <div className="log-item__site">
+                      🏢 {esc(l.site_name)}
+                      {l.experience && l.experience !== 'Not specified' && (
+                        <span style={{ marginLeft: 8, color: 'var(--green)', fontWeight: 600 }}>
+                          📊 {esc(l.experience)}
+                        </span>
+                      )}
+                    </div>
                     <div className="log-item__time">
-                      {esc(l.time)} · <a href={l.url} target="_blank" rel="noopener noreferrer">Open ↗</a>
+                      {esc(l.time)}
+                      {l.link && (
+                        <> · <a href={l.link} target="_blank" rel="noopener noreferrer">Apply ↗</a></>
+                      )}
+                      {' · '}<a href={l.url} target="_blank" rel="noopener noreferrer">Careers Page</a>
                     </div>
                   </div>
                 </div>

@@ -60,11 +60,15 @@ def check_site(site: dict, config: dict, log: list) -> dict:
     for job in new_jobs:
         seen.add(job["id"])
 
+        exp = job.get("experience", "")
+        job_link = job.get("link", "")
+
         # Telegram (instant)
         send_telegram(
             config.get("bot_token", ""),
             config.get("chat_id", ""),
-            job["text"], url, name
+            job["text"], url, name,
+            experience=exp, job_link=job_link
         )
         # Gmail (backup)
         send_email(
@@ -79,12 +83,14 @@ def check_site(site: dict, config: dict, log: list) -> dict:
             "site_name": name,
             "url": url,
             "job": job["text"],
+            "experience": exp,
+            "link": job_link,
         })
 
     site["seen"] = list(seen)
     site["last_checked"] = now_str()
     site["last_status"] = (
-        f"✅ {len(new_jobs)} new" if new_jobs else f"✅ No change ({len(jobs)} items)"
+        f"✅ {len(new_jobs)} new" if new_jobs else f"✅ No change ({len(jobs)} matched)"
     )
     return site
 

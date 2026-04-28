@@ -6,15 +6,22 @@ from email.mime.text import MIMEText
 
 # ── Telegram ────────────────────────────────────────────────────────────────
 
-def send_telegram(bot_token: str, chat_id: str, job_text: str, url: str, site_name: str) -> bool:
+def send_telegram(bot_token: str, chat_id: str, job_text: str, url: str, site_name: str,
+                   experience: str = "", job_link: str = "") -> bool:
     """Send an instant Telegram message. Returns True on success."""
     if not bot_token or not chat_id:
         return False
+
+    apply_url = job_link or url
+    exp_line = f"📊 *Exp:* {experience}\n" if experience and experience != "Not specified" else ""
+
     msg = (
-        f"🚨 *New Job Posted!*\n\n"
-        f"🏢 *Site:* {site_name}\n"
-        f"💼 *Role:* {job_text}\n\n"
-        f"🔗 [View Careers Page]({url})"
+        f"🚨 *New Job Alert!*\n\n"
+        f"🏢 *Company:* {site_name}\n"
+        f"💼 *Role:* {job_text}\n"
+        f"{exp_line}\n"
+        f"🔗 [Apply / View Job]({apply_url})\n"
+        f"🌐 [Careers Page]({url})"
     )
     try:
         r = _req.post(
@@ -23,7 +30,7 @@ def send_telegram(bot_token: str, chat_id: str, job_text: str, url: str, site_na
                 "chat_id": chat_id,
                 "text": msg,
                 "parse_mode": "Markdown",
-                "disable_web_page_preview": False,
+                "disable_web_page_preview": True,
             },
             timeout=10,
         )
