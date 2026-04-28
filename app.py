@@ -85,9 +85,9 @@ def check_site(site: dict, config: dict, log: list) -> dict:
             "job": job["text"],
             "experience": exp,
             "link": job_link,
-            "location": job.get("location", "Unspecified"),
-            "posted_date": job.get("posted_date", "Recent"),
-            "description": job.get("description", "")
+            "location": job.get("location", ""),
+            "posted": job.get("posted", ""),
+            "description": job.get("description", ""),
         })
 
     site["seen"] = list(seen)

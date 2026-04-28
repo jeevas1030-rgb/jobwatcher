@@ -1,461 +1,664 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   JobWatch Pro — Apple UI Dashboard
+   JobWatch Pro — Apple-Inspired Dashboard
+   100+ companies · Grouped job feed · Location · Posted time · Description
    ═══════════════════════════════════════════════════════════════════════════ */
 
-function esc(s) { return String(s || '') }
+const API = ''
 
-// ── Massive Pre-loaded Company Database ─────────────────────────────────────
-const PRESETS = [
-  // MNC & SERVICES
-  { name: 'Accenture',            url: 'https://www.accenture.com/in-en/careers/jobsearch?jk=software+engineer&sb=0&vw=1&is_rj=0', tag: 'Big IT' },
-  { name: 'Wipro',                url: 'https://careers.wipro.com/search-jobs/', tag: 'Big IT' },
-  { name: 'TCS',                  url: 'https://careers.tcs.com/search-jobs', tag: 'Big IT' },
-  { name: 'Infosys',              url: 'https://career.infosys.com/joblist', tag: 'Big IT' },
-  { name: 'Cognizant',            url: 'https://careers.cognizant.com/global/en/search-results?keywords=software+engineer', tag: 'Big IT' },
-  { name: 'HCL Tech',             url: 'https://www.hcltech.com/careers/job-search', tag: 'Big IT' },
-  { name: 'Tech Mahindra',        url: 'https://careers.techmahindra.com/search/?q=engineer', tag: 'Big IT' },
-  { name: 'Capgemini',            url: 'https://www.capgemini.com/in-en/careers/job-search/?country=India', tag: 'Big IT' },
-  { name: 'LTIMindtree',          url: 'https://www.ltimindtree.com/careers/job-openings/', tag: 'Big IT' },
-  { name: 'Hexaware',             url: 'https://jobs.lever.co/hexaware', tag: 'Big IT' },
-  { name: 'SLK Software',         url: 'https://www.slksoftware.com/careers', tag: 'Big IT' },
-  { name: 'Mindtree',             url: 'https://www.ltimindtree.com/careers/', tag: 'Big IT' },
-  { name: 'Mphasis',              url: 'https://careers.mphasis.com/search/', tag: 'Big IT' },
-  
-  // CHENNAI & SAAS GIANTS
-  { name: 'Freshworks',           url: 'https://boards.greenhouse.io/freshworks', tag: 'Chennai/SaaS' },
-  { name: 'Zoho',                 url: 'https://careers.zohocorp.com/jobs/Careers', tag: 'Chennai/SaaS' },
-  { name: 'Kissflow',             url: 'https://boards.greenhouse.io/kissflow', tag: 'Chennai/SaaS' },
-  { name: 'Chargebee',            url: 'https://boards.greenhouse.io/chargebee', tag: 'Chennai/SaaS' },
-  { name: 'BrowserStack',         url: 'https://boards.greenhouse.io/browserstack', tag: 'Chennai/SaaS' },
-  { name: 'Postman',              url: 'https://boards.greenhouse.io/postmanlabs', tag: 'Chennai/SaaS' },
-  { name: 'Gupshup',              url: 'https://boards.greenhouse.io/gupshup', tag: 'Chennai/SaaS' },
-  { name: 'CleverTap',            url: 'https://boards.greenhouse.io/clevertap', tag: 'Chennai/SaaS' },
-  { name: 'Hasura',               url: 'https://boards.greenhouse.io/hasura', tag: 'Chennai/SaaS' },
-  { name: 'Khatabook',            url: 'https://boards.greenhouse.io/khatabook', tag: 'Chennai/SaaS' },
-  
-  // AI, FINTECH & STARTUPS
-  { name: 'Razorpay',             url: 'https://boards.greenhouse.io/razorpay', tag: 'AI/Startups' },
-  { name: 'Zepto',                url: 'https://boards.greenhouse.io/zepto', tag: 'AI/Startups' },
-  { name: 'Groww',                url: 'https://boards.greenhouse.io/groww', tag: 'AI/Startups' },
-  { name: 'Meesho',               url: 'https://boards.greenhouse.io/meesho', tag: 'AI/Startups' },
-  { name: 'Paytm',                url: 'https://jobs.lever.co/paytm', tag: 'AI/Startups' },
-  { name: 'PhonePe',              url: 'https://jobs.lever.co/phonepe', tag: 'AI/Startups' },
-  { name: 'Cred',                 url: 'https://boards.greenhouse.io/dreamplug', tag: 'AI/Startups' },
-  { name: 'Swiggy',               url: 'https://boards.greenhouse.io/swiggy', tag: 'AI/Startups' },
-  { name: 'Eightfold AI',         url: 'https://boards.greenhouse.io/eightfoldai', tag: 'AI/Startups' },
-  { name: 'DataBricks',           url: 'https://boards.greenhouse.io/databricks', tag: 'AI/Startups' },
-  { name: 'Flipkart',             url: 'https://jobs.lever.co/flipkart', tag: 'AI/Startups' },
-  { name: 'Blinkit',              url: 'https://boards.greenhouse.io/blinkit', tag: 'AI/Startups' },
-  
-  // DIRECT CITIES (Naukri)
-  { name: 'Fresher Jobs – BLR',   url: 'https://www.naukri.com/fresher-jobs-in-bangalore?experience=0', tag: 'City Search' },
-  { name: 'Fresher Jobs – CHN',   url: 'https://www.naukri.com/fresher-jobs-in-chennai?experience=0',   tag: 'City Search' },
-  { name: 'Fresher Jobs – HYD',   url: 'https://www.naukri.com/fresher-jobs-in-hyderabad?experience=0', tag: 'City Search' },
-  { name: 'Fresher Jobs – Pune',  url: 'https://www.naukri.com/fresher-jobs-in-pune?experience=0',      tag: 'City Search' },
-]
-
-// ── Toast ───────────────────────────────────────────────────────────────────
-function ToastContainer({ toasts }) {
-  return (
-    <div className="toast-container" aria-live="polite" aria-atomic="true">
-      {toasts.map(t => (
-        <div key={t.id} className={`toast toast--${t.type} ${t.show ? 'toast--show' : ''}`}>{t.msg}</div>
-      ))}
-    </div>
-  )
+// ── Exp pill helper ─────────────────────────────────────────────────────────
+function expPillClass(exp) {
+  if (!exp || exp === 'Not specified') return 'exp-pill exp-pill--none'
+  const l = exp.toLowerCase()
+  if (l === 'fresher' || l === 'entry level') return 'exp-pill exp-pill--fresher'
+  const m = exp.match(/(\d+)/)
+  if (m && parseInt(m[1]) <= 1) return 'exp-pill exp-pill--fresher'
+  return 'exp-pill exp-pill--entry'
 }
 
+// ── Preset companies (100+) ─────────────────────────────────────────────────
+const PRESETS = [
+  {
+    label: '🏢 MNC Giants',
+    variant: '',
+    hint: 'Accenture, TCS, Wipro… (JS sites, Playwright)',
+    companies: [
+      { name: 'Accenture',      url: 'https://www.accenture.com/in-en/careers/jobsearch?jk=software+engineer&sb=0&vw=1&is_rj=0' },
+      { name: 'TCS',            url: 'https://careers.tcs.com/content/tcs/in/en/students-and-freshers.html' },
+      { name: 'Wipro',          url: 'https://careers.wipro.com/search-jobs/' },
+      { name: 'Infosys',        url: 'https://career.infosys.com/jobdesc?jobReferenceCode=INFSYS-EXTERNAL-175977' },
+      { name: 'Cognizant',      url: 'https://careers.cognizant.com/global/en/search-results?keywords=fresher' },
+      { name: 'HCL Tech',       url: 'https://www.hcltech.com/careers' },
+      { name: 'Tech Mahindra',  url: 'https://careers.techmahindra.com/search/#' },
+      { name: 'Capgemini',      url: 'https://www.capgemini.com/in-en/careers/job-search/' },
+      { name: 'LTIMindtree',    url: 'https://www.ltimindtree.com/careers/job-listings' },
+      { name: 'IBM India',      url: 'https://www.ibm.com/careers/search?field_of_study=Computer%20Science&country=IN' },
+      { name: 'Deloitte',       url: 'https://www2.deloitte.com/in/en/pages/careers/articles/join-deloitte.html' },
+      { name: 'Oracle India',   url: 'https://careers.oracle.com/jobs/#en/sites/jobsearch/requisitions?keyword=fresher' },
+    ],
+  },
+  {
+    label: '🔧 Service & Mid-Tier IT',
+    variant: 'green',
+    hint: 'SLK, Hexaware, Mphasis… quiet but solid companies',
+    companies: [
+      { name: 'Hexaware',       url: 'https://hexaware.com/careers/' },
+      { name: 'Mphasis',        url: 'https://careers.mphasis.com/search/#' },
+      { name: 'Coforge',        url: 'https://jobs.greenhouse.io/coforge' },
+      { name: 'Zensar',         url: 'https://jobs.greenhouse.io/zensar' },
+      { name: 'Nagarro',        url: 'https://jobs.greenhouse.io/nagarro' },
+      { name: 'Happiestminds',  url: 'https://jobs.greenhouse.io/happiestminds' },
+      { name: 'KPIT',           url: 'https://www.kpit.com/careers/opportunities/' },
+      { name: 'Birlasoft',      url: 'https://api.lever.co/v0/postings/birlasoft?mode=json' },
+      { name: 'Cyient',         url: 'https://api.lever.co/v0/postings/cyient?mode=json' },
+      { name: 'Tata Elxsi',     url: 'https://api.lever.co/v0/postings/tata-elxsi?mode=json' },
+      { name: 'Sasken',         url: 'https://api.lever.co/v0/postings/sasken?mode=json' },
+      { name: 'SLK Software',   url: 'https://slkgroup.com/careers/' },
+      { name: 'ITC Infotech',   url: 'https://www.itcinfotech.com/careers/job-openings/' },
+      { name: 'Sonata Software',url: 'https://www.sonata-software.com/careers' },
+      { name: 'CSS Corp/Movate',url: 'https://movate.com/careers/' },
+      { name: 'Sutherland',     url: 'https://www.sutherlandglobal.com/careers' },
+      { name: 'Mastech',        url: 'https://mastech.com/careers' },
+      { name: 'Trigent',        url: 'https://trigent.com/careers/' },
+    ],
+  },
+  {
+    label: '🌆 Chennai Companies',
+    variant: 'orange',
+    hint: 'Chennai-based and Chennai-heavy offices',
+    companies: [
+      { name: 'Zoho',           url: 'https://careers.zohocorp.com/jobs/Careers' },
+      { name: 'Freshworks',     url: 'https://boards.greenhouse.io/freshworks/jobs' },
+      { name: 'Aspire Systems', url: 'https://boards.greenhouse.io/aspiresystems/jobs' },
+      { name: 'm2p Fintech',    url: 'https://boards.greenhouse.io/m2pfintech/jobs' },
+      { name: 'Payoda',         url: 'https://boards.greenhouse.io/payoda/jobs' },
+      { name: 'Ramco Systems',  url: 'https://www.ramco.com/careers/' },
+      { name: 'Soliton Tech',   url: 'https://solitontech.com/careers/' },
+      { name: 'Mad Street Den', url: 'https://www.madstreetden.com/careers/' },
+      { name: 'Movate Chennai', url: 'https://movate.com/careers/' },
+      { name: 'Accolite',       url: 'https://www.accolite.com/careers/' },
+      { name: 'CSS Corp',       url: 'https://movate.com/careers/' },
+      { name: 'Bosch India',    url: 'https://jobs.smartrecruiters.com/BoschGroup/careers' },
+      { name: 'Verizon India',  url: 'https://www.verizon.com/about/careers' },
+      { name: 'DBS Tech India', url: 'https://www.dbs.com/careers' },
+    ],
+  },
+  {
+    label: '🦄 Unicorns & Startups',
+    variant: 'purple',
+    hint: 'Razorpay, Swiggy, CRED, Meesho…',
+    companies: [
+      { name: 'Razorpay',      url: 'https://boards.greenhouse.io/razorpay/jobs' },
+      { name: 'Swiggy',        url: 'https://boards.greenhouse.io/swiggy/jobs' },
+      { name: 'Zomato',        url: 'https://jobs.lever.co/zomato' },
+      { name: 'CRED',          url: 'https://boards.greenhouse.io/dreamplug/jobs' },
+      { name: 'PhonePe',       url: 'https://jobs.lever.co/phonepe' },
+      { name: 'Meesho',        url: 'https://boards.greenhouse.io/meesho/jobs' },
+      { name: 'Zepto',         url: 'https://boards.greenhouse.io/zepto/jobs' },
+      { name: 'Groww',         url: 'https://boards.greenhouse.io/groww/jobs' },
+      { name: 'Nykaa',         url: 'https://jobs.lever.co/nykaa' },
+      { name: 'ShareChat',     url: 'https://jobs.lever.co/sharechat' },
+      { name: 'BharatPe',      url: 'https://jobs.lever.co/bharatpe' },
+      { name: 'Ather Energy',  url: 'https://jobs.lever.co/ather-energy' },
+      { name: 'Licious',       url: 'https://jobs.lever.co/licious' },
+      { name: 'BrowserStack',  url: 'https://boards.greenhouse.io/browserstack/jobs' },
+      { name: 'Postman',       url: 'https://boards.greenhouse.io/postmanlabs/jobs' },
+      { name: 'Chargebee',     url: 'https://boards.greenhouse.io/chargebee/jobs' },
+      { name: 'DarwinBox',     url: 'https://boards.greenhouse.io/darwinbox/jobs' },
+      { name: 'Sprinklr',      url: 'https://boards.greenhouse.io/sprinklr/jobs' },
+      { name: 'MoEngage',      url: 'https://jobs.lever.co/moengage' },
+      { name: 'LeadSquared',   url: 'https://jobs.lever.co/leadsquared' },
+      { name: 'CleverTap',     url: 'https://boards.greenhouse.io/clevertap/jobs' },
+      { name: 'Physics Wallah',url: 'https://jobs.lever.co/physicswallah' },
+      { name: 'Urban Company', url: 'https://boards.greenhouse.io/urbanclap/jobs' },
+      { name: 'Spinny',        url: 'https://boards.greenhouse.io/spinny/jobs' },
+      { name: 'Purplle',       url: 'https://boards.greenhouse.io/purplle/jobs' },
+    ],
+  },
+  {
+    label: '🤖 AI & Deep Tech',
+    variant: 'teal',
+    hint: 'Sarvam, Yellow.ai, Observe.AI…',
+    companies: [
+      { name: 'Sarvam AI',     url: 'https://boards.greenhouse.io/sarvam-ai/jobs' },
+      { name: 'Yellow.ai',     url: 'https://boards.greenhouse.io/yellowmessenger/jobs' },
+      { name: 'Haptik',        url: 'https://boards.greenhouse.io/haptik/jobs' },
+      { name: 'Observe.AI',    url: 'https://boards.greenhouse.io/observeai/jobs' },
+      { name: 'Uniphore',      url: 'https://boards.greenhouse.io/uniphore/jobs' },
+      { name: 'Gnani.ai',      url: 'https://jobs.lever.co/gnani' },
+      { name: 'Krutrim (Ola)', url: 'https://krutrim.ai/careers' },
+      { name: 'Entropik',      url: 'https://entropiktech.com/careers/' },
+      { name: 'Simplismart',   url: 'https://simplismart.ai/careers' },
+      { name: 'Murf AI',       url: 'https://murf.ai/careers' },
+      { name: 'HashedIn (Deloitte)', url: 'https://hashedin.com/careers/' },
+    ],
+  },
+  {
+    label: '💰 FinTech',
+    variant: 'green',
+    hint: 'Slice, Jupiter, m2p, KreditBee…',
+    companies: [
+      { name: 'Slice',         url: 'https://boards.greenhouse.io/slicecard/jobs' },
+      { name: 'Jupiter Money', url: 'https://boards.greenhouse.io/jupitermoney/jobs' },
+      { name: 'KreditBee',     url: 'https://boards.greenhouse.io/kreditbee/jobs' },
+      { name: 'MoneyView',     url: 'https://boards.greenhouse.io/moneyview/jobs' },
+      { name: 'Lendingkart',   url: 'https://boards.greenhouse.io/lendingkart/jobs' },
+      { name: 'Navi',          url: 'https://jobs.lever.co/navi' },
+      { name: 'Fibe (EarlySalary)', url: 'https://jobs.lever.co/earlysalary' },
+      { name: 'Rupeek',        url: 'https://jobs.lever.co/rupeek' },
+      { name: 'CoinDCX',       url: 'https://coindcx.com/careers' },
+      { name: 'KoinX',         url: 'https://jobs.lever.co/koinx' },
+      { name: 'Fi Money',      url: 'https://jobs.lever.co/epifi' },
+    ],
+  },
+  {
+    label: '📍 City Job Feeds',
+    variant: 'purple',
+    hint: 'Naukri fresher searches by city — gets real updated listings',
+    companies: [
+      { name: '🏙 Bangalore Freshers',  url: 'https://www.naukri.com/fresher-jobs-in-bangalore' },
+      { name: '🌊 Chennai Freshers',    url: 'https://www.naukri.com/fresher-jobs-in-chennai' },
+      { name: '🌴 Hyderabad Freshers',  url: 'https://www.naukri.com/fresher-jobs-in-hyderabad' },
+      { name: '🏔 Pune Freshers',       url: 'https://www.naukri.com/fresher-jobs-in-pune' },
+      { name: '🌉 Mumbai Freshers',     url: 'https://www.naukri.com/fresher-jobs-in-mumbai' },
+      { name: '🏛 Noida Freshers',      url: 'https://www.naukri.com/fresher-jobs-in-noida' },
+    ],
+  },
+]
+
+// ── Toast hook ──────────────────────────────────────────────────────────────
+function useToast() {
+  const [toasts, setToasts] = useState([])
+  const add = useCallback((msg, type = 'ok') => {
+    const id = Date.now()
+    setToasts(t => [...t, { id, msg, type, show: false }])
+    setTimeout(() => setToasts(t => t.map(x => x.id === id ? { ...x, show: true } : x)), 20)
+    setTimeout(() => setToasts(t => t.map(x => x.id === id ? { ...x, show: false } : x)), 3500)
+    setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 3800)
+  }, [])
+  return { toasts, add }
+}
+
+// ── Main App ─────────────────────────────────────────────────────────────────
 export default function App() {
   const [sites, setSites]         = useState([])
   const [log, setLog]             = useState([])
-  const [status, setStatus]       = useState({ active_sites: 0, total_alerts: 0, total_seen: 0 })
-  const [toasts, setToasts]       = useState([])
-  const [newName, setNewName]     = useState('')
-  const [newUrl, setNewUrl]       = useState('')
-  const [botToken, setBotToken]   = useState('')
-  const [chatId, setChatId]       = useState('')
-  const [gmailUser, setGmailUser] = useState('')
-  const [gmailPass, setGmailPass] = useState('')
-  const [toEmail, setToEmail]     = useState('')
-  const [pollMin, setPollMin]     = useState('5')
-  const [hasPass, setHasPass]     = useState(false)
-  const [tgLoading, setTgLoading] = useState(false)
-  const [addLoading, setAddLoading] = useState(false)
-  const [bulkLoading, setBulkLoading] = useState(false)
+  const [status, setStatus]       = useState({})
+  const [config, setConfig]       = useState({})
+  const [addName, setAddName]     = useState('')
+  const [addUrl, setAddUrl]       = useState('')
+  const [addedUrls, setAddedUrls] = useState(new Set())
   const [bulkText, setBulkText]   = useState('')
   const [showBulk, setShowBulk]   = useState(false)
-  const [addedUrls, setAddedUrls] = useState(new Set())
-  const [groupedLog, setGroupedLog] = useState({})
-  const toastId = useRef(0)
+  const [testingTg, setTestingTg] = useState(false)
+  const [saving, setSaving]       = useState(false)
+  const { toasts, add: toast }    = useToast()
 
-  const toast = useCallback((msg, type = 'ok', dur = 3500) => {
-    const id = ++toastId.current
-    setToasts(p => [...p, { id, msg, type, show: false }])
-    setTimeout(() => setToasts(p => p.map(t => t.id === id ? { ...t, show: true } : t)), 20)
-    setTimeout(() => setToasts(p => p.map(t => t.id === id ? { ...t, show: false } : t)), dur)
-    setTimeout(() => setToasts(p => p.filter(t => t.id !== id)), dur + 300)
-  }, [])
-
-  const loadSites = useCallback(async () => {
+  // ── Fetch helpers ──────────────────────────────────────────────────────────
+  const fetchAll = useCallback(async () => {
     try {
-      const data = await fetch('/api/sites').then(r => r.json())
-      setSites(data)
-      setAddedUrls(new Set(data.map(s => s.url)))
-    } catch {}
-  }, [])
-
-  const loadLog = useCallback(async () => { 
-    try { 
-      const rawLog = await fetch('/api/log').then(r=>r.json());
-      setLog(rawLog);
-      
-      // Categorize log by company
-      const groups = {};
-      rawLog.forEach(l => {
-        const key = String(l.site_name || "Unknown");
-        if(!groups[key]) groups[key] = [];
-        groups[key].push(l);
-      });
-      setGroupedLog(groups);
-    } catch {} 
-  }, [])
-  
-  const loadStatus = useCallback(async () => { try { setStatus(await fetch('/api/status').then(r=>r.json())) } catch {} }, [])
-  const loadConfig = useCallback(async () => {
-    try {
-      const c = await fetch('/api/config').then(r => r.json())
-      if (c.bot_token) setBotToken(c.bot_token)
-      if (c.chat_id) setChatId(c.chat_id)
-      if (c.gmail_user) setGmailUser(c.gmail_user)
-      if (c.to_email) setToEmail(c.to_email)
-      if (c.has_password) setHasPass(true)
-      if (c.interval) setPollMin(String(c.interval))
-    } catch {}
+      const [s, l, st, c] = await Promise.all([
+        fetch(`${API}/api/sites`).then(r => r.json()),
+        fetch(`${API}/api/log`).then(r => r.json()),
+        fetch(`${API}/api/status`).then(r => r.json()),
+        fetch(`${API}/api/config`).then(r => r.json()),
+      ])
+      setSites(s)
+      setLog(l)
+      setStatus(st)
+      setConfig(c)
+      setAddedUrls(new Set(s.map(x => x.url)))
+    } catch (e) {
+      console.warn('fetch failed', e)
+    }
   }, [])
 
   useEffect(() => {
-    loadConfig(); loadSites(); loadLog(); loadStatus()
-    const t = window.setInterval(() => { loadSites(); loadLog(); loadStatus() }, 12000)
-    return () => window.clearInterval(t)
-  }, [loadConfig, loadSites, loadLog, loadStatus])
+    fetchAll()
+    const t = setInterval(fetchAll, 30_000)
+    return () => clearInterval(t)
+  }, [fetchAll])
 
-  const patchConfig = async (partial) => {
-    const existing = await fetch('/api/config').then(r => r.json())
-    await fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...existing, ...partial }) })
-  }
-
-  const saveAndTestTg = async () => {
-    if (!botToken.trim() || !chatId.trim()) { toast('Enter both Bot Token and Chat ID', 'err'); return }
-    setTgLoading(true)
-    try {
-      await patchConfig({ bot_token: botToken.trim(), chat_id: chatId.trim() })
-      const d = await fetch('/api/test/telegram', { method: 'POST' }).then(r => r.json())
-      if (d.ok) toast('✅ Telegram connected! Check your phone.', 'ok')
-      else toast('❌ ' + d.message, 'err', 5000)
-    } catch { toast('❌ Network error', 'err') }
-    finally { setTgLoading(false) }
-  }
-
-  const saveGmail = async () => {
-    const obj = { gmail_user: gmailUser.trim(), to_email: toEmail.trim() }
-    if (gmailPass) obj.gmail_pass = gmailPass
-    await patchConfig(obj)
-    toast('✅ Gmail settings saved', 'ok')
-  }
-
-  const savePoll = async (v) => {
-    setPollMin(v)
-    await patchConfig({ interval: parseInt(v) })
-    toast(`✅ Interval updated to ${v} min`, 'ok')
-  }
-
-  // ── Add helpers ───────────────────────────────────────────────────────────
-  const apiAddSite = async (url, name) => {
-    const r = await fetch('/api/sites', {
+  // ── Site actions ───────────────────────────────────────────────────────────
+  const addSite = useCallback(async (name, url) => {
+    if (!url.startsWith('http')) { toast('URL must start with http(s)://', 'err'); return }
+    const r = await fetch(`${API}/api/sites`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url, name })
+      body: JSON.stringify({ name, url }),
     })
-    return r.json()
-  }
-
-  const addSite = async (e) => {
-    e.preventDefault()
-    if (!newUrl.trim()) { toast('Enter a URL first', 'err'); return }
-    setAddLoading(true)
-    try {
-      const d = await apiAddSite(newUrl.trim(), newName.trim())
-      if (d.ok) { setNewUrl(''); setNewName(''); toast(`✅ Site added!`, 'ok'); loadSites(); loadStatus() }
-      else toast('❌ ' + d.error, 'err')
-    } catch { toast('❌ Network error', 'err') }
-    finally { setAddLoading(false) }
-  }
-
-  const addPreset = async (p) => {
-    if (addedUrls.has(p.url)) return
-    try {
-      const d = await apiAddSite(p.url, p.name)
-      if (d.ok) { toast(`✅ ${p.name} added!`, 'ok', 2000); loadSites(); loadStatus() }
-    } catch { toast('❌ Network error', 'err') }
-  }
-
-  const addAllPresets = async () => {
-    setBulkLoading(true)
-    let added = 0
-    for (const p of PRESETS) {
-      if (addedUrls.has(p.url)) continue
-      try { const d = await apiAddSite(p.url, p.name); if (d.ok) added++ } catch {}
+    const j = await r.json()
+    if (j.ok) {
+      toast(`✓ ${name || url} added`, 'ok')
+      fetchAll()
+    } else {
+      toast(j.error || 'Error', 'err')
     }
-    await loadSites(); await loadStatus()
-    toast(`✅ Added ${added} sites!`, 'ok')
-    setBulkLoading(false)
-  }
+  }, [fetchAll, toast])
 
-  const addBulkUrls = async () => {
-    if (!bulkText.trim()) { toast('Paste some URLs first', 'err'); return }
-    setBulkLoading(true)
-    const lines = bulkText.split('\n').map(l => l.trim()).filter(l => l.startsWith('http'))
-    if (!lines.length) { toast('No valid URLs found', 'err'); setBulkLoading(false); return }
-    let added = 0, skipped = 0
-    for (const url of lines) {
-      try {
-        const name = new URL(url).hostname.replace(/^(www\.|careers\.)/, '').split('.')[0]
-        const d = await apiAddSite(url, name.charAt(0).toUpperCase() + name.slice(1))
-        if (d.ok) added++; else skipped++
-      } catch { skipped++ }
+  const handleAdd = useCallback(async () => {
+    const url = addUrl.trim()
+    const name = addName.trim()
+    if (!url) return
+    await addSite(name, url)
+    setAddName(''); setAddUrl('')
+  }, [addName, addUrl, addSite])
+
+  const addChip = useCallback(async ({ name, url }) => {
+    await addSite(name, url)
+  }, [addSite])
+
+  const addAllPreset = useCallback(async (group) => {
+    const toAdd = group.companies.filter(c => !addedUrls.has(c.url))
+    if (!toAdd.length) { toast('All already added!', 'info'); return }
+    for (const c of toAdd) await addSite(c.name, c.url)
+    toast(`✓ Added ${toAdd.length} companies`, 'ok')
+  }, [addedUrls, addSite, toast])
+
+  const addAllBulk = useCallback(async () => {
+    const lines = bulkText.split('\n').map(l => l.trim()).filter(Boolean)
+    let added = 0
+    for (const l of lines) {
+      const parts = l.split(',').map(p => p.trim())
+      const url = parts.find(p => p.startsWith('http')) || l
+      const name = parts.find(p => !p.startsWith('http')) || ''
+      if (url.startsWith('http') && !addedUrls.has(url)) {
+        await addSite(name, url); added++
+      }
     }
     setBulkText(''); setShowBulk(false)
-    await loadSites(); await loadStatus()
-    toast(`✅ Added ${added} sites${skipped ? ` (${skipped} skipped)` : ''}`, 'ok')
-    setBulkLoading(false)
-  }
+    toast(`✓ Added ${added} sites`, 'ok')
+  }, [bulkText, addedUrls, addSite, toast])
 
-  const toggleSite = async (id) => { await fetch(`/api/sites/${id}/toggle`, { method: 'POST' }); loadSites(); loadStatus() }
-  const resetSite  = async (id) => { await fetch(`/api/sites/${id}/reset`, { method: 'POST' }); toast('↺ Reset!', 'info'); loadSites() }
-  const deleteSite = async (id) => { await fetch(`/api/sites/${id}`, { method: 'DELETE' }); toast('Removed', 'ok'); loadSites(); loadStatus() }
-  const clearLog   = async ()   => { await fetch('/api/log', { method: 'DELETE' }); toast('Cleared', 'ok'); loadLog() }
+  const toggleSite = useCallback(async id => {
+    await fetch(`${API}/api/sites/${id}/toggle`, { method: 'POST' })
+    fetchAll()
+  }, [fetchAll])
 
-  const isWatching = status.active_sites > 0
-  const bulkCount = bulkText.split('\n').filter(l => l.trim().startsWith('http')).length
+  const deleteSite = useCallback(async id => {
+    await fetch(`${API}/api/sites/${id}`, { method: 'DELETE' })
+    fetchAll()
+    toast('Removed', 'ok')
+  }, [fetchAll, toast])
 
+  const resetSite = useCallback(async id => {
+    await fetch(`${API}/api/sites/${id}/reset`, { method: 'POST' })
+    fetchAll()
+    toast('Reset — will re-scan', 'info')
+  }, [fetchAll, toast])
+
+  const clearLog = useCallback(async () => {
+    await fetch(`${API}/api/log`, { method: 'DELETE' })
+    setLog([])
+    toast('Log cleared', 'ok')
+  }, [toast])
+
+  const saveConfig = useCallback(async () => {
+    setSaving(true)
+    await fetch(`${API}/api/config`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(config),
+    })
+    setSaving(false)
+    toast('Config saved', 'ok')
+  }, [config, toast])
+
+  const testTelegram = useCallback(async () => {
+    setTestingTg(true)
+    const r = await fetch(`${API}/api/test/telegram`, { method: 'POST' })
+    const j = await r.json()
+    setTestingTg(false)
+    toast(j.message || (j.ok ? '✓ Sent!' : '✗ Failed'), j.ok ? 'ok' : 'err')
+  }, [toast])
+
+  // ── Grouped job feed ───────────────────────────────────────────────────────
+  const grouped = log.reduce((acc, item) => {
+    const key = item.site_name || 'Unknown'
+    if (!acc[key]) acc[key] = []
+    acc[key].push(item)
+    return acc
+  }, {})
+
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="app">
-      <ToastContainer toasts={toasts} />
 
-      {/* Header */}
+      {/* ── Header ─────────────────────────────────────────────────────── */}
       <header className="header">
-        <div className="header__logo">🚀</div>
+        <div className="header__logo" aria-hidden="true">🎯</div>
         <div className="header__text">
           <h1>JobWatch Pro</h1>
-          <p>Real-time automated career portal intelligence</p>
+          <p>Real-time multi-site career page monitor — freshers only</p>
         </div>
         <div className="header__badges">
-          <span className="badge badge--blue">{status.active_sites} Sites Watching</span>
-          <span className="badge badge--tg" aria-live="polite">
-            <span className={`badge__dot ${isWatching ? 'badge__dot--active' : 'badge__dot--idle'}`}></span>
-            {isWatching ? 'Engine Running' : 'Idle'}
+          <span className="badge badge--blue">
+            {status.total_sites ?? '–'} Sites
+          </span>
+          <span className="badge badge--yellow">
+            {status.total_alerts ?? '–'} Alerts
+          </span>
+          <span className="badge badge--green">
+            <span className="badge__dot badge__dot--active" />
+            Watching
           </span>
         </div>
       </header>
 
-      {/* Stats */}
-      <div className="stats">
-        <div className="stat"><div className="stat__value">{status.active_sites}</div><div className="stat__label">Watching</div></div>
-        <div className="stat"><div className="stat__value">{status.total_alerts}</div><div className="stat__label">Jobs Sent</div></div>
-        <div className="stat"><div className="stat__value">{status.total_seen}</div><div className="stat__label">Scanned</div></div>
-        <div className="stat"><div className="stat__value">{pollMin}m</div><div className="stat__label">Interval</div></div>
-      </div>
+      {/* ── Stats ──────────────────────────────────────────────────────── */}
+      <section className="stats" aria-label="Summary statistics">
+        {[
+          { v: status.active_sites ?? '–', l: 'Watching' },
+          { v: status.total_alerts ?? '–', l: 'Alerts Sent' },
+          { v: status.total_seen ?? '–',   l: 'Jobs Indexed' },
+          { v: `${config.interval ?? 5}m`, l: 'Poll Interval' },
+        ].map(({ v, l }) => (
+          <div key={l} className="stat">
+            <div className="stat__value">{v}</div>
+            <div className="stat__label">{l}</div>
+          </div>
+        ))}
+      </section>
 
+      {/* ── Main Grid ──────────────────────────────────────────────────── */}
       <div className="grid">
+
+        {/* ── LEFT COL ───────────────────────────────────────────────── */}
         <div className="col">
-          
-          {/* Sites & Preset Manager */}
-          <section className="card" aria-label="Target Sites">
+
+          {/* Careers Pages Card */}
+          <div className="card">
             <div className="card__head">
-              <h2 className="card__title"><span className="icon">🌐</span> Portals & Startups</h2>
+              <div className="card__title"><span className="icon">🌐</span> Careers Pages</div>
             </div>
 
-            {/* Quick Add Apple-style Panel */}
+            {/* Add Single */}
+            <div className="add-row">
+              <input
+                id="add-name" placeholder="Company name"
+                value={addName} onChange={e => setAddName(e.target.value)}
+                aria-label="Company name"
+              />
+              <input
+                id="add-url" placeholder="https://company.com/careers"
+                value={addUrl} onChange={e => setAddUrl(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleAdd()}
+                aria-label="Careers page URL"
+              />
+              <button id="btn-add" className="btn btn--primary" onClick={handleAdd}>＋ Add</button>
+            </div>
+
+            {/* Quick Add Presets */}
             <div className="quick-add-panel">
-              {['Big IT', 'Chennai/SaaS', 'AI/Startups'].map(category => (
-                <div className="preset-group" key={category}>
-                  <div className="preset-group__label">{category}</div>
+              {PRESETS.map(group => (
+                <div key={group.label} className="preset-group">
+                  <div className="preset-group__label">
+                    {group.label}
+                    <span className="hint">— {group.hint}</span>
+                    <button
+                      className="btn btn--sm btn--outline"
+                      style={{ marginLeft: 'auto', fontSize: '11px', padding: '4px 10px' }}
+                      onClick={() => addAllPreset(group)}
+                    >
+                      Add All
+                    </button>
+                  </div>
                   <div className="preset-chips">
-                    {PRESETS.filter(p => p.tag === category).map(p => {
-                      const isAdded = addedUrls.has(p.url)
-                      let colorClass = category === 'Chennai/SaaS' ? 'chip--purple' : category === 'AI/Startups' ? 'chip--green' : ''
-                      return (
-                        <button key={p.name} onClick={() => addPreset(p)} disabled={isAdded} className={`chip ${colorClass} ${isAdded ? 'chip--added' : ''}`}>
-                          {isAdded && '✓'} {p.name}
-                        </button>
-                      )
-                    })}
+                    {group.companies.map(c => (
+                      <button
+                        key={c.url}
+                        className={`chip chip--${group.variant} ${addedUrls.has(c.url) ? 'chip--added' : ''}`}
+                        onClick={() => !addedUrls.has(c.url) && addChip(c)}
+                        disabled={addedUrls.has(c.url)}
+                        title={c.url}
+                      >
+                        {addedUrls.has(c.url) ? '✓ ' : '＋ '}{c.name}
+                      </button>
+                    ))}
                   </div>
                 </div>
               ))}
-              <div className="btn-row" style={{ marginTop: '16px' }}>
-                <button className="btn btn--outline btn--sm" id="btn-add-all" onClick={addAllPresets} disabled={bulkLoading}>
-                  {bulkLoading ? 'Adding...' : '⚡ Add All Pre-loaded Sites'}
-                </button>
-                <button className="btn btn--outline btn--sm" id="btn-show-bulk" onClick={() => setShowBulk(!showBulk)}>
-                  📋 Paste URLs...
-                </button>
-              </div>
+            </div>
 
+            {/* Bulk Paste */}
+            <div style={{ marginTop: 'var(--sp-4)' }}>
+              <button
+                className="btn btn--outline btn--sm"
+                onClick={() => setShowBulk(p => !p)}
+              >
+                {showBulk ? '▲ Hide Bulk Add' : '📋 Bulk Paste URLs'}
+              </button>
               {showBulk && (
-                <div style={{ marginTop: '12px' }}>
-                  <textarea 
-                    className="field__input field__input--mono" 
-                    rows="4" 
-                    placeholder="https://careers.example.com&#10;https://jobs.test.com"
+                <div style={{ marginTop: 'var(--sp-3)' }}>
+                  <textarea
+                    className="field__input"
+                    rows={5}
+                    placeholder={"https://company1.com/careers\nhttps://company2.com/jobs\nCompany Name, https://..."}
                     value={bulkText}
                     onChange={e => setBulkText(e.target.value)}
-                    style={{ resize: 'vertical' }}
+                    style={{ resize: 'vertical', fontFamily: 'var(--font-mono)', fontSize: '12px' }}
                   />
-                  <button className="btn btn--primary btn--sm" style={{ marginTop: '8px' }} onClick={addBulkUrls} disabled={bulkLoading}>
-                    {bulkLoading ? 'Adding...' : `Add ${bulkCount > 0 ? bulkCount : ''} URLs`}
-                  </button>
+                  <div className="btn-row">
+                    <button className="btn btn--primary btn--sm" onClick={addAllBulk}>Add All URLs</button>
+                    <button className="btn btn--outline btn--sm" onClick={() => { setBulkText(''); setShowBulk(false) }}>Cancel</button>
+                  </div>
                 </div>
               )}
             </div>
 
-            <form className="add-row" onSubmit={addSite}>
-              <input type="text" id="input-site-name" value={newName} onChange={e => setNewName(e.target.value)} placeholder="Custom Name" style={{ flex: '0.4' }} />
-              <input type="url" id="input-site-url" value={newUrl} onChange={e => setNewUrl(e.target.value)} placeholder="https://careers.domain.com" />
-              <button className="btn btn--primary" type="submit" disabled={addLoading} style={{ padding: '0 24px' }}>+</button>
-            </form>
-
-            <div className="site-list" id="site-list" role="list">
+            {/* Site list */}
+            <div className="site-list" style={{ marginTop: 'var(--sp-5)' }}>
               {sites.length === 0 ? (
                 <div className="empty">
-                  <div className="empty__icon">🌍</div>
-                  <p className="empty__text">No sites are being monitored.<br />Add a careers page to start tracking.</p>
+                  <div className="empty__icon">🏢</div>
+                  <div className="empty__text">No sites yet.<br />Click a company chip above or add a URL.</div>
                 </div>
               ) : sites.map(s => (
-                <div className={`site ${s.is_active ? '' : 'site--off'}`} key={s.id} role="listitem">
-                  <div className={`site__dot ${s.is_active ? 'site__dot--on' : 'site__dot--off'}`}></div>
+                <div key={s.id} className={`site ${s.enabled ? '' : 'site--off'}`}>
+                  <div className={`site__dot site__dot--${s.enabled ? 'on' : 'off'}`} />
                   <div className="site__info">
-                    <div className="site__name">{esc(s.name)}</div>
-                    <div className="site__url">{s.url.replace(/^https?:\/\//, '').replace(/\/$/, '')}</div>
+                    <div className="site__name">{s.name}</div>
+                    <div className="site__url">{s.url}</div>
                     <div className="site__meta">
-                      {s.last_error ? <span className="err">⚠️ {esc(s.last_error)}</span> :
-                       s.last_checked ? <><span className="ok">✓ Checked</span> · {esc(s.last_checked)} · {s.seen_count || 0} indexed</> : 'Waiting for first check...'}
+                      {s.last_status?.startsWith('✅')
+                        ? <span className="ok">{s.last_status}</span>
+                        : <span className="err">{s.last_status}</span>
+                      }
+                      {' · '}{s.last_checked}
                     </div>
                   </div>
                   <div className="site__actions">
-                    <button className="btn btn--icon" onClick={() => toggleSite(s.id)} title={s.is_active ? 'Pause' : 'Resume'}>{s.is_active ? '⏸' : '▶'}</button>
-                    <button className="btn btn--icon" onClick={() => resetSite(s.id)} title="Reset memory">↺</button>
-                    <button className="btn btn--icon danger" onClick={() => deleteSite(s.id)} title="Delete">✕</button>
+                    <button className="btn--icon" title="Toggle" onClick={() => toggleSite(s.id)}>
+                      {s.enabled ? '⏸' : '▶'}
+                    </button>
+                    <button className="btn--icon" title="Reset seen" onClick={() => resetSite(s.id)}>↺</button>
+                    <button className="btn--icon danger" title="Remove" onClick={() => deleteSite(s.id)}>✕</button>
                   </div>
                 </div>
               ))}
             </div>
-          </section>
+          </div>
 
-          {/* Categorized Alert Log */}
-          <section className="card" aria-label="Alert Log">
+          {/* Config — Telegram */}
+          <div className="card">
             <div className="card__head">
-              <h2 className="card__title"><span className="icon">🔔</span> Discovery Feed</h2>
-              {log.length > 0 && <button className="btn btn--outline btn--sm" id="btn-clear-log" onClick={clearLog}>Clear</button>}
-            </div>
-            <div className="log-list" id="log-list" role="log">
-              {log.length === 0 ? (
-                <div className="empty">
-                  <div className="empty__icon">📭</div>
-                  <p className="empty__text">No jobs discovered yet.<br />Perfect matches will appear here.</p>
-                </div>
-              ) : Object.keys(groupedLog).map(companyName => (
-                <div key={companyName} className="company-group" style={{ marginBottom: "20px" }}>
-                  <h3 style={{ fontSize: "15px", fontWeight: "700", color: "var(--accent)", borderBottom: "1.5px solid var(--border-light)", paddingBottom: "8px", marginBottom: "12px" }}>
-                    🏢 {esc(companyName)} <span style={{fontSize: "12px", background: "var(--bg-surface)", padding: "2px 8px", borderRadius: "100px", color: "var(--text-muted)", marginLeft: "8px"}}>{groupedLog[companyName].length} jobs</span>
-                  </h3>
-                  {groupedLog[companyName].map((l, i) => (
-                    <div className="log-item" key={i} style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingBottom: '16px' }}>
-                      <div className="log-item__job" style={{ fontSize: "14px", fontWeight: "700" }}>
-                        {esc(l.job)}
-                        {l.experience && l.experience !== 'Not specified' && (
-                          <span style={{ fontSize: "11px", marginLeft: 8, background: "var(--green-light)", color: "var(--green)", padding: '2px 8px', borderRadius: '100px' }}>
-                            {esc(l.experience)}
-                          </span>
-                        )}
-                         <span style={{ fontSize: "11px", marginLeft: 4, background: "var(--accent-light)", color: "var(--accent)", padding: '2px 8px', borderRadius: '100px' }}>
-                            {esc(l.posted_date || "Recent")}
-                          </span>
-                      </div>
-                      
-                      <div style={{ fontSize: "12px", color: "var(--text-secondary)", lineHeight: "1.4", margin: "4px 0" }}>
-                         {l.location && <span style={{fontWeight: 600, color: "var(--text-primary)"}}>📍 {esc(l.location)} · </span>}
-                         {esc(l.description || "No description provided.")}
-                      </div>
-
-                      <div className="log-item__time">
-                        {esc(l.time)}
-                        {l.link && <> · <a href={l.link} target="_blank" rel="noopener noreferrer">Apply Directly ↗</a></>}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
-          </section>
-        </div>
-
-        <div className="col">
-          {/* Telegram Settings */}
-          <section className="card" aria-label="Telegram setup">
-            <div className="card__head">
-              <h2 className="card__title"><span className="icon">📱</span> Notifications</h2>
+              <div className="card__title"><span className="icon">✈️</span> Telegram (Instant)</div>
               <span className="badge badge--tg">Recommended</span>
             </div>
             <div className="steps">
               {[
-                <>Open Telegram → search <a href="https://t.me/BotFather" target="_blank" rel="noopener noreferrer">@BotFather</a> → send <code>/newbot</code> → copy token</>,
-                <>Search <a href="https://t.me/userinfobot" target="_blank" rel="noopener noreferrer">@userinfobot</a> → get your Chat ID</>,
-                <>Save & Test below</>,
-              ].map((text, i) => (
-                <div className="step" key={i}>
+                <>Open Telegram → search <strong>@BotFather</strong> → send <code>/newbot</code> → copy the <strong>token</strong></>,
+                <>Search <strong>@userinfobot</strong> → send any message → copy your <strong>Chat ID</strong></>,
+                <>Paste both below → click <strong>Save &amp; Test</strong></>,
+              ].map((t, i) => (
+                <div key={i} className="step">
                   <div className="step__num">{i + 1}</div>
-                  <div className="step__text">{text}</div>
+                  <div className="step__text">{t}</div>
                 </div>
               ))}
             </div>
             <div className="field">
-              <label className="field__label">Bot Token</label>
-              <input className="field__input field__input--mono" type="text" value={botToken} onChange={e => setBotToken(e.target.value)} placeholder="123456:ABCdef" autoComplete="off" />
+              <label className="field__label" htmlFor="bot-token">Bot Token</label>
+              <input id="bot-token" className="field__input field__input--mono"
+                placeholder="123456789:AAH..."
+                value={config.bot_token || ''} onChange={e => setConfig(c => ({ ...c, bot_token: e.target.value }))} />
             </div>
             <div className="field">
-              <label className="field__label">Your Chat ID</label>
-              <input className="field__input field__input--mono" type="text" value={chatId} onChange={e => setChatId(e.target.value)} placeholder="123456789" autoComplete="off" />
+              <label className="field__label" htmlFor="chat-id">Your Chat ID</label>
+              <input id="chat-id" className="field__input field__input--mono"
+                placeholder="5615448613"
+                value={config.chat_id || ''} onChange={e => setConfig(c => ({ ...c, chat_id: e.target.value }))} />
             </div>
             <div className="btn-row">
-              <button className="btn btn--tg" onClick={saveAndTestTg} disabled={tgLoading}>
-                {tgLoading ? '⏳ Testing…' : '🚀 Save & Test'}
+              <button id="btn-save-tg" className="btn btn--tg" disabled={testingTg} onClick={async () => { await saveConfig(); testTelegram() }}>
+                {testingTg ? '⏳ Sending…' : '✈️ Save & Test Telegram'}
+              </button>
+              <button className="btn btn--outline" disabled={saving} onClick={saveConfig}>
+                {saving ? 'Saving…' : '💾 Save'}
               </button>
             </div>
-          </section>
+          </div>
+        </div>
 
-          {/* Engine Settings */}
-          <section className="card" aria-label="Poll interval">
+        {/* ── RIGHT COL ──────────────────────────────────────────────── */}
+        <div className="col">
+
+          {/* Job Feed */}
+          <div className="card">
             <div className="card__head">
-              <h2 className="card__title"><span className="icon">⚙️</span> Engine Settings</h2>
+              <div className="card__title"><span className="icon">📋</span> Job Feed</div>
+              <button className="btn btn--sm btn--outline" onClick={clearLog}>Clear</button>
+            </div>
+
+            {log.length === 0 ? (
+              <div className="empty">
+                <div className="empty__icon">🔍</div>
+                <div className="empty__text">No jobs yet.<br />Add some companies and the watcher will alert you within 5 minutes.</div>
+              </div>
+            ) : (
+              <div className="job-feed">
+                {Object.entries(grouped).map(([company, items]) => (
+                  <div key={company} className="company-group">
+                    <div className="company-group__header">
+                      <span className="company-group__name">🏢 {company}</span>
+                      <span className="company-group__count">{items.length} job{items.length !== 1 ? 's' : ''}</span>
+                    </div>
+                    {items.map((item, i) => {
+                      const exp = item.experience || ''
+                      return (
+                        <div key={`${item.job}${i}`} className="job-card">
+                          <div className="job-card__title">{item.job}</div>
+                          <div className="job-card__pills">
+                            {/* Experience */}
+                            <span className={expPillClass(exp)}>
+                              {exp === 'Not specified' ? '📋 Exp N/A' : `💼 ${exp}`}
+                            </span>
+                            {/* Location */}
+                            {item.location && (
+                              <span className="loc-pill">📍 {item.location}</span>
+                            )}
+                            {/* Posted */}
+                            {item.posted && (
+                              <span className="posted-pill">🕐 {item.posted}</span>
+                            )}
+                          </div>
+                          {/* Description snippet */}
+                          {item.description && (
+                            <div className="job-card__desc">{item.description}</div>
+                          )}
+                          <div className="job-card__footer">
+                            <span className="job-card__time">{item.time}</span>
+                            <a href={item.link || item.url} target="_blank" rel="noopener noreferrer" className="apply-btn">
+                              Apply ↗
+                            </a>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Gmail Backup (optional) */}
+          <div className="card">
+            <div className="card__head">
+              <div className="card__title"><span className="icon">📧</span> Gmail Backup</div>
+              <span className="badge badge--yellow">Optional</span>
             </div>
             <div className="field">
-              <label className="field__label">Scan Frequency</label>
-              <select className="field__input" value={pollMin} onChange={e => savePoll(e.target.value)}>
-                <option value="1">Hyper-Drive (Every 1 min)</option>
-                <option value="3">Every 3 minutes</option>
-                <option value="5">Every 5 minutes (ideal)</option>
-                <option value="15">Every 15 minutes</option>
-                <option value="60">Every 1 hour</option>
+              <label className="field__label" htmlFor="gmail-user">
+                Your Gmail <span className="hint">(sender)</span>
+              </label>
+              <input id="gmail-user" className="field__input" type="email" placeholder="you@gmail.com"
+                value={config.gmail_user || ''} onChange={e => setConfig(c => ({ ...c, gmail_user: e.target.value }))} />
+            </div>
+            <div className="field">
+              <label className="field__label" htmlFor="gmail-pass">
+                App Password <span className="hint">(not your real password — Google → App Passwords)</span>
+              </label>
+              <input id="gmail-pass" className="field__input field__input--mono" type="password" placeholder="xxxx xxxx xxxx xxxx"
+                value={config.gmail_pass || ''} onChange={e => setConfig(c => ({ ...c, gmail_pass: e.target.value }))} />
+            </div>
+            <div className="field">
+              <label className="field__label" htmlFor="to-email">Notify Email</label>
+              <input id="to-email" className="field__input" type="email" placeholder="your@email.com"
+                value={config.to_email || ''} onChange={e => setConfig(c => ({ ...c, to_email: e.target.value }))} />
+            </div>
+            <div className="field">
+              <label className="field__label" htmlFor="poll-interval">
+                Poll Every <span className="hint">(minutes)</span>
+              </label>
+              <select id="poll-interval" className="field__input"
+                value={config.interval || 5} onChange={e => setConfig(c => ({ ...c, interval: parseInt(e.target.value) }))}>
+                {[1, 2, 5, 10, 15, 30].map(n => <option key={n} value={n}>{n} min</option>)}
               </select>
             </div>
-          </section>
+            <div className="btn-row">
+              <button id="btn-save-config" className="btn btn--primary" disabled={saving} onClick={saveConfig}>
+                {saving ? 'Saving…' : '💾 Save Config'}
+              </button>
+            </div>
+          </div>
+
+          {/* How it works */}
+          <div className="card">
+            <div className="card__head">
+              <div className="card__title"><span className="icon">💡</span> How It Works</div>
+            </div>
+            <div className="steps">
+              {[
+                <><strong>Greenhouse / Lever APIs</strong> → instant JSON, date-filtered to last 48h</>,
+                <><strong>JS sites (Accenture, TCS…)</strong> → Playwright renders full page → real jobs</>,
+                <><strong>Static sites</strong> → BeautifulSoup HTML scrape</>,
+                <>Senior roles (<em>lead, manager, architect…</em>) are auto-blocked</>,
+                <>Experience starting from 2+ yrs is auto-blocked — only 0-X or 1-X allowed</>,
+              ].map((t, i) => (
+                <div key={i} className="step">
+                  <div className="step__num">{i + 1}</div>
+                  <div className="step__text">{t}</div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
+
+      {/* ── Footer ─────────────────────────────────────────────────────── */}
       <footer className="footer">
-        JobWatch Pro by AI 🚀 <br/> Designed like Apple, Engineered for Scale.
+        JobWatch Pro · 100% cloud · built for 2026 freshers ·{' '}
+        <a href="https://github.com/jeevas1030-rgb/jobwatcher" target="_blank" rel="noopener noreferrer">
+          GitHub ↗
+        </a>
       </footer>
+
+      {/* ── Toast container ─────────────────────────────────────────────── */}
+      <div className="toast-container" aria-live="polite">
+        {toasts.map(({ id, msg, type, show }) => (
+          <div key={id} className={`toast toast--${type} ${show ? 'toast--show' : ''}`}>{msg}</div>
+        ))}
+      </div>
+
     </div>
   )
 }
