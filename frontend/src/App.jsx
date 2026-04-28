@@ -1,32 +1,59 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   JobWatch Pro — React Dashboard
+   JobWatch Pro — Apple UI Dashboard
    ═══════════════════════════════════════════════════════════════════════════ */
 
 function esc(s) { return String(s || '') }
 
-// ── Preset companies ────────────────────────────────────────────────────────
+// ── Massive Pre-loaded Company Database ─────────────────────────────────────
 const PRESETS = [
-  { name: 'Accenture',            url: 'https://www.accenture.com/in-en/careers/jobsearch?jk=software+engineer&sb=0&vw=1&is_rj=0', tag: 'JS' },
-  { name: 'Wipro',                url: 'https://careers.wipro.com/search-jobs/', tag: 'JS' },
-  { name: 'TCS',                  url: 'https://careers.tcs.com/search-jobs', tag: 'JS' },
-  { name: 'Infosys',              url: 'https://career.infosys.com/joblist', tag: 'JS' },
-  { name: 'Cognizant',            url: 'https://careers.cognizant.com/global/en/search-results?keywords=software+engineer', tag: 'JS' },
-  { name: 'HCL Tech',             url: 'https://www.hcltech.com/careers/job-search', tag: 'JS' },
-  { name: 'Tech Mahindra',        url: 'https://careers.techmahindra.com/search/?q=engineer', tag: 'JS' },
-  { name: 'Capgemini',            url: 'https://www.capgemini.com/in-en/careers/job-search/?country=India', tag: 'JS' },
-  { name: 'LTIMindtree',          url: 'https://www.ltimindtree.com/careers/job-openings/', tag: 'JS' },
-  { name: 'Freshworks',           url: 'https://careers.freshworks.com/jobs', tag: 'Static' },
-  { name: 'Zoho',                 url: 'https://careers.zohocorp.com/jobs/Careers', tag: 'Static' },
-  { name: 'Razorpay',             url: 'https://razorpay.com/jobs/', tag: 'Static' },
-  { name: 'Persistent',           url: 'https://careers.persistent.com/jobs', tag: 'Static' },
-  { name: 'Mphasis',              url: 'https://careers.mphasis.com/search/', tag: 'Static' },
-  { name: 'Hexaware',             url: 'https://hexaware.com/careers/', tag: 'Static' },
-  { name: 'Fresher Jobs – BLR',   url: 'https://www.naukri.com/fresher-jobs-in-bangalore?experience=0', tag: 'City' },
-  { name: 'Fresher Jobs – CHN',   url: 'https://www.naukri.com/fresher-jobs-in-chennai?experience=0',   tag: 'City' },
-  { name: 'Fresher Jobs – HYD',   url: 'https://www.naukri.com/fresher-jobs-in-hyderabad?experience=0', tag: 'City' },
-  { name: 'Fresher Jobs – Pune',  url: 'https://www.naukri.com/fresher-jobs-in-pune?experience=0',      tag: 'City' },
+  // MNC & SERVICES
+  { name: 'Accenture',            url: 'https://www.accenture.com/in-en/careers/jobsearch?jk=software+engineer&sb=0&vw=1&is_rj=0', tag: 'Big IT' },
+  { name: 'Wipro',                url: 'https://careers.wipro.com/search-jobs/', tag: 'Big IT' },
+  { name: 'TCS',                  url: 'https://careers.tcs.com/search-jobs', tag: 'Big IT' },
+  { name: 'Infosys',              url: 'https://career.infosys.com/joblist', tag: 'Big IT' },
+  { name: 'Cognizant',            url: 'https://careers.cognizant.com/global/en/search-results?keywords=software+engineer', tag: 'Big IT' },
+  { name: 'HCL Tech',             url: 'https://www.hcltech.com/careers/job-search', tag: 'Big IT' },
+  { name: 'Tech Mahindra',        url: 'https://careers.techmahindra.com/search/?q=engineer', tag: 'Big IT' },
+  { name: 'Capgemini',            url: 'https://www.capgemini.com/in-en/careers/job-search/?country=India', tag: 'Big IT' },
+  { name: 'LTIMindtree',          url: 'https://www.ltimindtree.com/careers/job-openings/', tag: 'Big IT' },
+  { name: 'Hexaware',             url: 'https://jobs.lever.co/hexaware', tag: 'Big IT' },
+  { name: 'SLK Software',         url: 'https://www.slksoftware.com/careers', tag: 'Big IT' },
+  { name: 'Mindtree',             url: 'https://www.ltimindtree.com/careers/', tag: 'Big IT' },
+  { name: 'Mphasis',              url: 'https://careers.mphasis.com/search/', tag: 'Big IT' },
+  
+  // CHENNAI & SAAS GIANTS
+  { name: 'Freshworks',           url: 'https://boards.greenhouse.io/freshworks', tag: 'Chennai/SaaS' },
+  { name: 'Zoho',                 url: 'https://careers.zohocorp.com/jobs/Careers', tag: 'Chennai/SaaS' },
+  { name: 'Kissflow',             url: 'https://boards.greenhouse.io/kissflow', tag: 'Chennai/SaaS' },
+  { name: 'Chargebee',            url: 'https://boards.greenhouse.io/chargebee', tag: 'Chennai/SaaS' },
+  { name: 'BrowserStack',         url: 'https://boards.greenhouse.io/browserstack', tag: 'Chennai/SaaS' },
+  { name: 'Postman',              url: 'https://boards.greenhouse.io/postmanlabs', tag: 'Chennai/SaaS' },
+  { name: 'Gupshup',              url: 'https://boards.greenhouse.io/gupshup', tag: 'Chennai/SaaS' },
+  { name: 'CleverTap',            url: 'https://boards.greenhouse.io/clevertap', tag: 'Chennai/SaaS' },
+  { name: 'Hasura',               url: 'https://boards.greenhouse.io/hasura', tag: 'Chennai/SaaS' },
+  { name: 'Khatabook',            url: 'https://boards.greenhouse.io/khatabook', tag: 'Chennai/SaaS' },
+  
+  // AI, FINTECH & STARTUPS
+  { name: 'Razorpay',             url: 'https://boards.greenhouse.io/razorpay', tag: 'AI/Startups' },
+  { name: 'Zepto',                url: 'https://boards.greenhouse.io/zepto', tag: 'AI/Startups' },
+  { name: 'Groww',                url: 'https://boards.greenhouse.io/groww', tag: 'AI/Startups' },
+  { name: 'Meesho',               url: 'https://boards.greenhouse.io/meesho', tag: 'AI/Startups' },
+  { name: 'Paytm',                url: 'https://jobs.lever.co/paytm', tag: 'AI/Startups' },
+  { name: 'PhonePe',              url: 'https://jobs.lever.co/phonepe', tag: 'AI/Startups' },
+  { name: 'Cred',                 url: 'https://boards.greenhouse.io/dreamplug', tag: 'AI/Startups' },
+  { name: 'Swiggy',               url: 'https://boards.greenhouse.io/swiggy', tag: 'AI/Startups' },
+  { name: 'Eightfold AI',         url: 'https://boards.greenhouse.io/eightfoldai', tag: 'AI/Startups' },
+  { name: 'DataBricks',           url: 'https://boards.greenhouse.io/databricks', tag: 'AI/Startups' },
+  { name: 'Flipkart',             url: 'https://jobs.lever.co/flipkart', tag: 'AI/Startups' },
+  { name: 'Blinkit',              url: 'https://boards.greenhouse.io/blinkit', tag: 'AI/Startups' },
+  
+  // DIRECT CITIES (Naukri)
+  { name: 'Fresher Jobs – BLR',   url: 'https://www.naukri.com/fresher-jobs-in-bangalore?experience=0', tag: 'City Search' },
+  { name: 'Fresher Jobs – CHN',   url: 'https://www.naukri.com/fresher-jobs-in-chennai?experience=0',   tag: 'City Search' },
+  { name: 'Fresher Jobs – HYD',   url: 'https://www.naukri.com/fresher-jobs-in-hyderabad?experience=0', tag: 'City Search' },
+  { name: 'Fresher Jobs – Pune',  url: 'https://www.naukri.com/fresher-jobs-in-pune?experience=0',      tag: 'City Search' },
 ]
 
 // ── Toast ───────────────────────────────────────────────────────────────────
@@ -60,6 +87,7 @@ export default function App() {
   const [bulkText, setBulkText]   = useState('')
   const [showBulk, setShowBulk]   = useState(false)
   const [addedUrls, setAddedUrls] = useState(new Set())
+  const [groupedLog, setGroupedLog] = useState({})
   const toastId = useRef(0)
 
   const toast = useCallback((msg, type = 'ok', dur = 3500) => {
@@ -78,7 +106,22 @@ export default function App() {
     } catch {}
   }, [])
 
-  const loadLog    = useCallback(async () => { try { setLog(await fetch('/api/log').then(r=>r.json())) } catch {} }, [])
+  const loadLog = useCallback(async () => { 
+    try { 
+      const rawLog = await fetch('/api/log').then(r=>r.json());
+      setLog(rawLog);
+      
+      // Categorize log by company
+      const groups = {};
+      rawLog.forEach(l => {
+        const key = String(l.site_name || "Unknown");
+        if(!groups[key]) groups[key] = [];
+        groups[key].push(l);
+      });
+      setGroupedLog(groups);
+    } catch {} 
+  }, [])
+  
   const loadStatus = useCallback(async () => { try { setStatus(await fetch('/api/status').then(r=>r.json())) } catch {} }, [])
   const loadConfig = useCallback(async () => {
     try {
@@ -194,180 +237,164 @@ export default function App() {
   const clearLog   = async ()   => { await fetch('/api/log', { method: 'DELETE' }); toast('Cleared', 'ok'); loadLog() }
 
   const isWatching = status.active_sites > 0
-  const bigIT   = PRESETS.filter(p => p.tag === 'JS')
-  const startups = PRESETS.filter(p => p.tag === 'Static')
-  const cities  = PRESETS.filter(p => p.tag === 'City')
   const bulkCount = bulkText.split('\n').filter(l => l.trim().startsWith('http')).length
 
   return (
     <div className="app">
+      <ToastContainer toasts={toasts} />
 
       {/* Header */}
       <header className="header">
-        <div className="header__logo" aria-hidden="true">🔭</div>
+        <div className="header__logo">🚀</div>
         <div className="header__text">
           <h1>JobWatch Pro</h1>
-          <p>Real-time multi-site career page monitor</p>
+          <p>Real-time automated career portal intelligence</p>
         </div>
-        <nav className="header__badges" aria-label="Status">
-          <span className="badge badge--blue">{sites.length} Site{sites.length !== 1 ? 's' : ''}</span>
-          <span className="badge badge--tg">{status.total_alerts} Alert{status.total_alerts !== 1 ? 's' : ''}</span>
-          <span className={`badge ${isWatching ? 'badge--green' : 'badge--yellow'}`}>
-            <span className={`badge__dot ${isWatching ? 'badge__dot--active' : 'badge__dot--idle'}`} />
-            {isWatching ? 'Watching' : 'Idle'}
+        <div className="header__badges">
+          <span className="badge badge--blue">{status.active_sites} Sites Watching</span>
+          <span className="badge badge--tg" aria-live="polite">
+            <span className={`badge__dot ${isWatching ? 'badge__dot--active' : 'badge__dot--idle'}`}></span>
+            {isWatching ? 'Engine Running' : 'Idle'}
           </span>
-        </nav>
+        </div>
       </header>
 
       {/* Stats */}
-      <section className="stats" aria-label="Statistics">
-        {[
-          [status.active_sites, 'Watching'],
-          [status.total_alerts, 'Alerts Sent'],
-          [status.total_seen,   'Jobs Indexed'],
-          [pollMin + 'm',       'Poll Interval'],
-        ].map(([v, l]) => (
-          <article className="stat" key={l}>
-            <div className="stat__value">{v}</div>
-            <div className="stat__label">{l}</div>
-          </article>
-        ))}
-      </section>
+      <div className="stats">
+        <div className="stat"><div className="stat__value">{status.active_sites}</div><div className="stat__label">Watching</div></div>
+        <div className="stat"><div className="stat__value">{status.total_alerts}</div><div className="stat__label">Jobs Sent</div></div>
+        <div className="stat"><div className="stat__value">{status.total_seen}</div><div className="stat__label">Scanned</div></div>
+        <div className="stat"><div className="stat__value">{pollMin}m</div><div className="stat__label">Interval</div></div>
+      </div>
 
-      {/* ⚡ Quick Add Panel */}
-      <section className="card quick-add-panel" aria-label="Quick add companies">
-        <div className="card__head">
-          <h2 className="card__title"><span className="icon">⚡</span> Quick Add Companies</h2>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn btn--outline btn--sm" onClick={() => setShowBulk(b => !b)} id="btn-toggle-bulk">
-              {showBulk ? '▲ Hide' : '📋 Bulk Paste'}
-            </button>
-            <button className="btn btn--primary btn--sm" onClick={addAllPresets} disabled={bulkLoading} id="btn-add-all">
-              {bulkLoading ? '⏳' : '＋ Add All'}
-            </button>
-          </div>
-        </div>
-
-        {showBulk && (
-          <div style={{ marginBottom: 16 }}>
-            <label className="field__label" htmlFor="bulk-urls-input">Paste multiple career page URLs (one per line)</label>
-            <textarea
-              id="bulk-urls-input"
-              className="field__input"
-              rows={5}
-              value={bulkText}
-              onChange={e => setBulkText(e.target.value)}
-              placeholder={"https://careers.company1.com\nhttps://company2.com/jobs\nhttps://company3.com/careers"}
-              style={{ fontFamily: 'monospace', fontSize: 12, resize: 'vertical', marginTop: 6 }}
-            />
-            <button className="btn btn--primary" onClick={addBulkUrls} disabled={bulkLoading} id="btn-add-bulk" style={{ marginTop: 8 }}>
-              {bulkLoading ? '⏳ Adding…' : `＋ Add ${bulkCount} URL${bulkCount !== 1 ? 's' : ''}`}
-            </button>
-          </div>
-        )}
-
-        {[
-          { label: '🏢 Big IT Companies', hint: '(launched via AI-powered browser)', list: bigIT, cls: '' },
-          { label: '🚀 Startups & Mid-size', hint: '(fast HTML scraping)', list: startups, cls: 'chip--green' },
-          { label: '📍 Fresher Jobs by City', hint: '(Naukri search)', list: cities, cls: 'chip--purple' },
-        ].map(({ label, hint, list, cls }) => (
-          <div className="preset-group" key={label}>
-            <div className="preset-group__label">{label} <span className="hint">{hint}</span></div>
-            <div className="preset-chips" role="list">
-              {list.map((p, i) => {
-                const added = addedUrls.has(p.url)
-                return (
-                  <button
-                    key={i}
-                    role="listitem"
-                    className={`chip ${cls} ${added ? 'chip--added' : ''}`}
-                    onClick={() => addPreset(p)}
-                    disabled={added}
-                    title={p.url}
-                    id={`preset-${p.name.replace(/\W+/g,'-').toLowerCase()}`}
-                  >
-                    {added ? '✓ ' : '＋ '}{p.name}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        ))}
-      </section>
-
-      {/* Main Grid */}
-      <main className="grid">
+      <div className="grid">
         <div className="col">
-
-          {/* Careers Pages */}
-          <section className="card" aria-label="Monitored career pages">
+          
+          {/* Sites & Preset Manager */}
+          <section className="card" aria-label="Target Sites">
             <div className="card__head">
-              <h2 className="card__title"><span className="icon">🌐</span> Careers Pages</h2>
+              <h2 className="card__title"><span className="icon">🌐</span> Portals & Startups</h2>
             </div>
+
+            {/* Quick Add Apple-style Panel */}
+            <div className="quick-add-panel">
+              {['Big IT', 'Chennai/SaaS', 'AI/Startups'].map(category => (
+                <div className="preset-group" key={category}>
+                  <div className="preset-group__label">{category}</div>
+                  <div className="preset-chips">
+                    {PRESETS.filter(p => p.tag === category).map(p => {
+                      const isAdded = addedUrls.has(p.url)
+                      let colorClass = category === 'Chennai/SaaS' ? 'chip--purple' : category === 'AI/Startups' ? 'chip--green' : ''
+                      return (
+                        <button key={p.name} onClick={() => addPreset(p)} disabled={isAdded} className={`chip ${colorClass} ${isAdded ? 'chip--added' : ''}`}>
+                          {isAdded && '✓'} {p.name}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
+              <div className="btn-row" style={{ marginTop: '16px' }}>
+                <button className="btn btn--outline btn--sm" id="btn-add-all" onClick={addAllPresets} disabled={bulkLoading}>
+                  {bulkLoading ? 'Adding...' : '⚡ Add All Pre-loaded Sites'}
+                </button>
+                <button className="btn btn--outline btn--sm" id="btn-show-bulk" onClick={() => setShowBulk(!showBulk)}>
+                  📋 Paste URLs...
+                </button>
+              </div>
+
+              {showBulk && (
+                <div style={{ marginTop: '12px' }}>
+                  <textarea 
+                    className="field__input field__input--mono" 
+                    rows="4" 
+                    placeholder="https://careers.example.com&#10;https://jobs.test.com"
+                    value={bulkText}
+                    onChange={e => setBulkText(e.target.value)}
+                    style={{ resize: 'vertical' }}
+                  />
+                  <button className="btn btn--primary btn--sm" style={{ marginTop: '8px' }} onClick={addBulkUrls} disabled={bulkLoading}>
+                    {bulkLoading ? 'Adding...' : `Add ${bulkCount > 0 ? bulkCount : ''} URLs`}
+                  </button>
+                </div>
+              )}
+            </div>
+
             <form className="add-row" onSubmit={addSite}>
-              <input type="text" value={newName} onChange={e => setNewName(e.target.value)} placeholder="Company name" style={{ maxWidth: 160 }} aria-label="Company name" id="input-company-name" />
-              <input type="url" value={newUrl} onChange={e => setNewUrl(e.target.value)} placeholder="https://company.com/careers" required aria-label="Careers URL" id="input-careers-url" />
-              <button type="submit" className="btn btn--primary" disabled={addLoading} id="btn-add-site">
-                {addLoading ? '⏳' : '＋ Add'}
-              </button>
+              <input type="text" id="input-site-name" value={newName} onChange={e => setNewName(e.target.value)} placeholder="Custom Name" style={{ flex: '0.4' }} />
+              <input type="url" id="input-site-url" value={newUrl} onChange={e => setNewUrl(e.target.value)} placeholder="https://careers.domain.com" />
+              <button className="btn btn--primary" type="submit" disabled={addLoading} style={{ padding: '0 24px' }}>+</button>
             </form>
 
-            <div className="site-list" role="list" id="site-list">
+            <div className="site-list" id="site-list" role="list">
               {sites.length === 0 ? (
                 <div className="empty">
-                  <div className="empty__icon">🔗</div>
-                  <p className="empty__text">No sites yet.<br />Use Quick Add above or paste a URL.</p>
+                  <div className="empty__icon">🌍</div>
+                  <p className="empty__text">No sites are being monitored.<br />Add a careers page to start tracking.</p>
                 </div>
-              ) : sites.map(s => {
-                const sc = (s.last_status || '').includes('✅') ? 'ok' : (s.last_status || '').includes('❌') ? 'err' : ''
-                return (
-                  <div key={s.id} className={`site ${s.enabled ? '' : 'site--off'}`} role="listitem" id={`site-${s.id}`}>
-                    <div className={`site__dot ${s.enabled ? 'site__dot--on' : 'site__dot--off'}`} aria-label={s.enabled ? 'Active' : 'Paused'} />
-                    <div className="site__info">
-                      <div className="site__name">{esc(s.name)}</div>
-                      <div className="site__url">{esc(s.url)}</div>
-                      <div className="site__meta"><span className={sc}>{esc(s.last_status)}</span> · {esc(s.last_checked)} · {s.seen_count} indexed</div>
-                    </div>
-                    <div className="site__actions">
-                      <button className="btn--icon" onClick={() => toggleSite(s.id)} title={s.enabled ? 'Pause' : 'Resume'}>{s.enabled ? '⏸' : '▶'}</button>
-                      <button className="btn--icon" onClick={() => resetSite(s.id)} title="Re-scan">↺</button>
-                      <button className="btn--icon danger" onClick={() => deleteSite(s.id)} title="Remove">✕</button>
+              ) : sites.map(s => (
+                <div className={`site ${s.is_active ? '' : 'site--off'}`} key={s.id} role="listitem">
+                  <div className={`site__dot ${s.is_active ? 'site__dot--on' : 'site__dot--off'}`}></div>
+                  <div className="site__info">
+                    <div className="site__name">{esc(s.name)}</div>
+                    <div className="site__url">{s.url.replace(/^https?:\/\//, '').replace(/\/$/, '')}</div>
+                    <div className="site__meta">
+                      {s.last_error ? <span className="err">⚠️ {esc(s.last_error)}</span> :
+                       s.last_checked ? <><span className="ok">✓ Checked</span> · {esc(s.last_checked)} · {s.seen_count || 0} indexed</> : 'Waiting for first check...'}
                     </div>
                   </div>
-                )
-              })}
+                  <div className="site__actions">
+                    <button className="btn btn--icon" onClick={() => toggleSite(s.id)} title={s.is_active ? 'Pause' : 'Resume'}>{s.is_active ? '⏸' : '▶'}</button>
+                    <button className="btn btn--icon" onClick={() => resetSite(s.id)} title="Reset memory">↺</button>
+                    <button className="btn btn--icon danger" onClick={() => deleteSite(s.id)} title="Delete">✕</button>
+                  </div>
+                </div>
+              ))}
             </div>
           </section>
 
-          {/* Alert Log */}
-          <section className="card" aria-label="Job alert history">
+          {/* Categorized Alert Log */}
+          <section className="card" aria-label="Alert Log">
             <div className="card__head">
-              <h2 className="card__title"><span className="icon">📋</span> Alert Log</h2>
-              <button className="btn btn--outline btn--sm" onClick={clearLog} id="btn-clear-log">Clear</button>
+              <h2 className="card__title"><span className="icon">🔔</span> Discovery Feed</h2>
+              {log.length > 0 && <button className="btn btn--outline btn--sm" id="btn-clear-log" onClick={clearLog}>Clear</button>}
             </div>
-            <div className="log-list" role="log" id="log-list">
+            <div className="log-list" id="log-list" role="log">
               {log.length === 0 ? (
                 <div className="empty">
                   <div className="empty__icon">📭</div>
-                  <p className="empty__text">No alerts yet.<br />New jobs appear here in real time.</p>
+                  <p className="empty__text">No jobs discovered yet.<br />Perfect matches will appear here.</p>
                 </div>
-              ) : log.slice(0, 50).map((l, i) => (
-                <div className="log-item" key={i}>
-                  <div className="log-item__icon" aria-hidden="true">💼</div>
-                  <div className="log-item__body">
-                    <div className="log-item__job">{esc(l.job)}</div>
-                    <div className="log-item__site">
-                      🏢 {esc(l.site_name)}
-                      {l.experience && l.experience !== 'Not specified' && (
-                        <span style={{ marginLeft: 8, color: 'var(--green)', fontWeight: 600 }}>📊 {esc(l.experience)}</span>
-                      )}
+              ) : Object.keys(groupedLog).map(companyName => (
+                <div key={companyName} className="company-group" style={{ marginBottom: "20px" }}>
+                  <h3 style={{ fontSize: "15px", fontWeight: "700", color: "var(--accent)", borderBottom: "1.5px solid var(--border-light)", paddingBottom: "8px", marginBottom: "12px" }}>
+                    🏢 {esc(companyName)} <span style={{fontSize: "12px", background: "var(--bg-surface)", padding: "2px 8px", borderRadius: "100px", color: "var(--text-muted)", marginLeft: "8px"}}>{groupedLog[companyName].length} jobs</span>
+                  </h3>
+                  {groupedLog[companyName].map((l, i) => (
+                    <div className="log-item" key={i} style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingBottom: '16px' }}>
+                      <div className="log-item__job" style={{ fontSize: "14px", fontWeight: "700" }}>
+                        {esc(l.job)}
+                        {l.experience && l.experience !== 'Not specified' && (
+                          <span style={{ fontSize: "11px", marginLeft: 8, background: "var(--green-light)", color: "var(--green)", padding: '2px 8px', borderRadius: '100px' }}>
+                            {esc(l.experience)}
+                          </span>
+                        )}
+                         <span style={{ fontSize: "11px", marginLeft: 4, background: "var(--accent-light)", color: "var(--accent)", padding: '2px 8px', borderRadius: '100px' }}>
+                            {esc(l.posted_date || "Recent")}
+                          </span>
+                      </div>
+                      
+                      <div style={{ fontSize: "12px", color: "var(--text-secondary)", lineHeight: "1.4", margin: "4px 0" }}>
+                         {l.location && <span style={{fontWeight: 600, color: "var(--text-primary)"}}>📍 {esc(l.location)} · </span>}
+                         {esc(l.description || "No description provided.")}
+                      </div>
+
+                      <div className="log-item__time">
+                        {esc(l.time)}
+                        {l.link && <> · <a href={l.link} target="_blank" rel="noopener noreferrer">Apply Directly ↗</a></>}
+                      </div>
                     </div>
-                    <div className="log-item__time">
-                      {esc(l.time)}
-                      {l.link && <> · <a href={l.link} target="_blank" rel="noopener noreferrer">Apply ↗</a></>}
-                      {' · '}<a href={l.url} target="_blank" rel="noopener noreferrer">Careers</a>
-                    </div>
-                  </div>
+                  ))}
                 </div>
               ))}
             </div>
@@ -375,18 +402,17 @@ export default function App() {
         </div>
 
         <div className="col">
-
-          {/* Telegram */}
+          {/* Telegram Settings */}
           <section className="card" aria-label="Telegram setup">
             <div className="card__head">
-              <h2 className="card__title"><span className="icon">✈️</span> Telegram (Instant)</h2>
+              <h2 className="card__title"><span className="icon">📱</span> Notifications</h2>
               <span className="badge badge--tg">Recommended</span>
             </div>
             <div className="steps">
               {[
-                <>Open Telegram → search <a href="https://t.me/BotFather" target="_blank" rel="noopener noreferrer">@BotFather</a> → send <code>/newbot</code> → copy the <strong>token</strong></>,
-                <>Search <a href="https://t.me/userinfobot" target="_blank" rel="noopener noreferrer">@userinfobot</a> → send any message → copy your <strong>Chat ID</strong></>,
-                <>Paste both below → click <strong>Save & Test</strong></>,
+                <>Open Telegram → search <a href="https://t.me/BotFather" target="_blank" rel="noopener noreferrer">@BotFather</a> → send <code>/newbot</code> → copy token</>,
+                <>Search <a href="https://t.me/userinfobot" target="_blank" rel="noopener noreferrer">@userinfobot</a> → get your Chat ID</>,
+                <>Save & Test below</>,
               ].map((text, i) => (
                 <div className="step" key={i}>
                   <div className="step__num">{i + 1}</div>
@@ -395,72 +421,41 @@ export default function App() {
               ))}
             </div>
             <div className="field">
-              <label className="field__label" htmlFor="input-bot-token">Bot Token</label>
-              <input className="field__input field__input--mono" type="text" id="input-bot-token" value={botToken} onChange={e => setBotToken(e.target.value)} placeholder="123456:ABCdef..." autoComplete="off" />
+              <label className="field__label">Bot Token</label>
+              <input className="field__input field__input--mono" type="text" value={botToken} onChange={e => setBotToken(e.target.value)} placeholder="123456:ABCdef" autoComplete="off" />
             </div>
             <div className="field">
-              <label className="field__label" htmlFor="input-chat-id">Your Chat ID</label>
-              <input className="field__input field__input--mono" type="text" id="input-chat-id" value={chatId} onChange={e => setChatId(e.target.value)} placeholder="123456789" autoComplete="off" />
+              <label className="field__label">Your Chat ID</label>
+              <input className="field__input field__input--mono" type="text" value={chatId} onChange={e => setChatId(e.target.value)} placeholder="123456789" autoComplete="off" />
             </div>
             <div className="btn-row">
-              <button className="btn btn--tg" onClick={saveAndTestTg} disabled={tgLoading} id="btn-test-telegram">
-                {tgLoading ? '⏳ Testing…' : '💾 Save & Test Telegram'}
+              <button className="btn btn--tg" onClick={saveAndTestTg} disabled={tgLoading}>
+                {tgLoading ? '⏳ Testing…' : '🚀 Save & Test'}
               </button>
             </div>
           </section>
 
-          {/* Gmail */}
-          <section className="card" aria-label="Gmail setup">
-            <div className="card__head">
-              <h2 className="card__title"><span className="icon">📧</span> Gmail Backup</h2>
-              <span className="badge badge--yellow">Optional</span>
-            </div>
-            <div className="field">
-              <label className="field__label" htmlFor="input-gmail-user">Your Gmail (sender)</label>
-              <input className="field__input" type="email" id="input-gmail-user" value={gmailUser} onChange={e => setGmailUser(e.target.value)} placeholder="you@gmail.com" />
-            </div>
-            <div className="field">
-              <label className="field__label" htmlFor="input-gmail-pass">App Password <span className="hint">(not your real password)</span></label>
-              <input className="field__input field__input--mono" type="password" id="input-gmail-pass" value={gmailPass} onChange={e => setGmailPass(e.target.value)} placeholder={hasPass ? '••••••••••••••••' : '16-char app password'} />
-            </div>
-            <div className="field">
-              <label className="field__label" htmlFor="input-to-email">Send Alerts To</label>
-              <input className="field__input" type="email" id="input-to-email" value={toEmail} onChange={e => setToEmail(e.target.value)} placeholder="recipient@gmail.com" />
-            </div>
-            <div className="btn-row">
-              <button className="btn btn--outline" onClick={saveGmail} id="btn-save-gmail">💾 Save Gmail</button>
-            </div>
-          </section>
-
-          {/* Poll Interval */}
+          {/* Engine Settings */}
           <section className="card" aria-label="Poll interval">
             <div className="card__head">
-              <h2 className="card__title"><span className="icon">⏱</span> Poll Interval</h2>
+              <h2 className="card__title"><span className="icon">⚙️</span> Engine Settings</h2>
             </div>
             <div className="field">
-              <label className="field__label" htmlFor="select-interval">Check every</label>
-              <select className="field__input" id="select-interval" value={pollMin} onChange={e => savePoll(e.target.value)}>
-                <option value="1">Every 1 minute (fastest)</option>
+              <label className="field__label">Scan Frequency</label>
+              <select className="field__input" value={pollMin} onChange={e => savePoll(e.target.value)}>
+                <option value="1">Hyper-Drive (Every 1 min)</option>
                 <option value="3">Every 3 minutes</option>
-                <option value="5">Every 5 minutes (recommended)</option>
-                <option value="10">Every 10 minutes</option>
+                <option value="5">Every 5 minutes (ideal)</option>
                 <option value="15">Every 15 minutes</option>
-                <option value="30">Every 30 minutes</option>
-                <option value="60">Every 60 minutes</option>
+                <option value="60">Every 1 hour</option>
               </select>
             </div>
-            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 'var(--sp-2)', lineHeight: 1.5 }}>
-              💡 <strong style={{ color: 'var(--text-secondary)' }}>5 min</strong> is the sweet spot — detects new jobs within 5 min of posting.
-            </p>
           </section>
         </div>
-      </main>
-
+      </div>
       <footer className="footer">
-        <p>JobWatch Pro · Runs 24/7 on <a href="https://railway.app" target="_blank" rel="noopener noreferrer">Railway</a> or Docker</p>
+        JobWatch Pro by AI 🚀 <br/> Designed like Apple, Engineered for Scale.
       </footer>
-
-      <ToastContainer toasts={toasts} />
     </div>
   )
 }
