@@ -18,44 +18,59 @@ HEADERS = {
 JOB_KEYWORDS = [
     # Core roles
     "software engineer", "software developer", "sde", "swe",
+    "custom software", "application engineer",
     "web developer", "full stack", "fullstack", "full-stack",
     "frontend", "front-end", "front end",
     "backend", "back-end", "back end",
-    "developer", "programmer", "engineer",
+    "developer", "programmer", "engineer", "coder",
     "data scientist", "data analyst", "data engineer",
-    "machine learning", "ml engineer", "ai engineer",
-    "devops", "cloud engineer", "site reliability",
-    "qa engineer", "test engineer", "sdet", "quality assurance",
-    "mobile developer", "android developer", "ios developer",
-    "react developer", "angular developer", "node developer",
-    "python developer", "java developer", ".net developer",
-    "ui developer", "ux designer", "ui/ux",
+    "machine learning", "ml engineer", "ai engineer", "deep learning",
+    "nlp", "computer vision", "generative ai",
+    "devops", "cloud engineer", "site reliability", "sre",
+    "qa engineer", "test engineer", "sdet", "quality assurance", "automation tester",
+    "mobile developer", "android developer", "ios developer", "flutter developer",
+    "react developer", "angular developer", "node developer", "vue developer",
+    "python developer", "java developer", ".net developer", "c++ developer",
+    "golang developer", "rust developer", "php developer", "ruby developer",
+    "ui developer", "ux designer", "ui/ux", "interaction designer",
 
-    # Fresher-friendly titles
-    "intern", "internship", "trainee",
-    "graduate", "fresher", "entry level", "entry-level",
+    # Entry-level & fresher titles
+    "intern", "internship", "trainee", "apprentice",
+    "graduate", "fresher", "fresh graduate",
+    "entry level", "entry-level", "entrylevel",
     "associate", "junior", "jr.", "jr ",
+    "level 1", "level i", "l1", "grade 1",
+    "0-1 year", "0-2 year", "0 - 1", "0 - 2", "0 to 2",
     "analyst", "consultant",
     "specialist programmer", "systems engineer",
     "application developer", "technology analyst",
     "packaged app development", "test analyst",
+    "staff engineer", "member technical",
 
-    # Company-specific fresher programs
+    # Company-specific fresher programs (India IT)
     "ase", "act", "genesis", "launchpad", "ignite",
-    "campus", "early career", "new grad",
+    "campus", "early career", "new grad", "stepping stone",
+    "ninja", "digital nurture", "smart hire", "codevita",
+    "nqt", "tcs", "infosys", "wipro", "cognizant",
+    "hcl", "tech mahindra", "capgemini", "accenture",
+    "mindtree", "mphasis", "persistent", "ltimindtree",
 
-    # Generic but relevant
+    # More IT roles
     "technology", "tech lead", "architect",
     "product engineer", "platform engineer",
     "solutions engineer", "support engineer",
-    "it analyst", "business analyst",
+    "it analyst", "business analyst", "business intelligence",
     "cyber security", "security analyst", "security engineer",
-    "network engineer", "infrastructure",
-    "embedded", "firmware",
+    "network engineer", "infrastructure engineer",
+    "embedded", "firmware", "iot developer",
     "database", "dba", "sql developer",
-    "etl developer", "bi developer", "tableau",
+    "etl developer", "bi developer", "tableau", "power bi",
     "scrum master", "project manager", "program manager",
     "technical writer", "technical support",
+    "api developer", "microservices", "blockchain",
+    "rpa developer", "automation engineer",
+    "salesforce developer", "servicenow", "sap consultant",
+    "graphics programmer", "game developer",
 ]
 
 # ── Experience Level Patterns ─────────────────────────────────────────────────
