@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+
+# Data (contains secrets like bot tokens)
+data.json
+
+# Dev files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Build artifacts (rebuilt on deploy)
+frontend/node_modules/
