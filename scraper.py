@@ -1,7 +1,9 @@
 import hashlib
 import re
+import json
 import requests
 from bs4 import BeautifulSoup
+from urllib.parse import urljoin, urlparse, parse_qs
 
 HEADERS = {
     "User-Agent": (
@@ -13,161 +15,109 @@ HEADERS = {
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
 }
 
-# ── IT/Fresher Job Keywords ───────────────────────────────────────────────────
-# A scraped item MUST contain at least one of these keywords to be considered a real job
-JOB_KEYWORDS = [
-    # Core roles
+# ══════════════════════════════════════════════════════════════════════════════
+#  JOB TITLE KEYWORDS — must contain at least one to be a real job
+# ══════════════════════════════════════════════════════════════════════════════
+JOB_TITLE_KEYWORDS = [
     "software engineer", "software developer", "sde", "swe",
-    "custom software", "application engineer",
+    "custom software", "application engineer", "application developer",
     "web developer", "full stack", "fullstack", "full-stack",
-    "frontend", "front-end", "front end",
-    "backend", "back-end", "back end",
-    "developer", "programmer", "engineer", "coder",
+    "frontend developer", "frontend engineer", "front-end",
+    "backend developer", "backend engineer", "back-end",
     "data scientist", "data analyst", "data engineer",
-    "machine learning", "ml engineer", "ai engineer", "deep learning",
-    "nlp", "computer vision", "generative ai",
-    "devops", "cloud engineer", "site reliability", "sre",
-    "qa engineer", "test engineer", "sdet", "quality assurance", "automation tester",
-    "mobile developer", "android developer", "ios developer", "flutter developer",
-    "react developer", "angular developer", "node developer", "vue developer",
-    "python developer", "java developer", ".net developer", "c++ developer",
-    "golang developer", "rust developer", "php developer", "ruby developer",
-    "ui developer", "ux designer", "ui/ux", "interaction designer",
-
-    # Entry-level & fresher titles
-    "intern", "internship", "trainee", "apprentice",
-    "graduate", "fresher", "fresh graduate",
-    "entry level", "entry-level", "entrylevel",
-    "associate", "junior", "jr.", "jr ",
-    "level 1", "level i", "l1", "grade 1",
-    "0-1 year", "0-2 year", "0 - 1", "0 - 2", "0 to 2",
-    "analyst", "consultant",
-    "specialist programmer", "systems engineer",
-    "application developer", "technology analyst",
-    "packaged app development", "test analyst",
-    "staff engineer", "member technical",
-
-    # Company-specific fresher programs (India IT)
-    "ase", "act", "genesis", "launchpad", "ignite",
-    "campus", "early career", "new grad", "stepping stone",
-    "ninja", "digital nurture", "smart hire", "codevita",
-    "nqt", "tcs", "infosys", "wipro", "cognizant",
-    "hcl", "tech mahindra", "capgemini", "accenture",
-    "mindtree", "mphasis", "persistent", "ltimindtree",
-
-    # More IT roles
-    "technology", "tech lead", "architect",
+    "machine learning", "ml engineer", "ai engineer",
+    "deep learning", "nlp", "computer vision", "generative ai",
+    "devops engineer", "cloud engineer", "site reliability", "sre",
+    "qa engineer", "test engineer", "sdet", "quality assurance",
+    "automation tester", "automation engineer",
+    "mobile developer", "android developer", "ios developer",
+    "flutter developer", "react native",
+    "react developer", "angular developer", "node developer",
+    "python developer", "java developer", ".net developer",
+    "ui developer", "ux designer", "ui/ux",
     "product engineer", "platform engineer",
     "solutions engineer", "support engineer",
-    "it analyst", "business analyst", "business intelligence",
-    "cyber security", "security analyst", "security engineer",
+    "security analyst", "security engineer", "cyber security",
     "network engineer", "infrastructure engineer",
-    "embedded", "firmware", "iot developer",
-    "database", "dba", "sql developer",
-    "etl developer", "bi developer", "tableau", "power bi",
-    "scrum master", "project manager", "program manager",
-    "technical writer", "technical support",
-    "api developer", "microservices", "blockchain",
-    "rpa developer", "automation engineer",
-    "salesforce developer", "servicenow", "sap consultant",
-    "graphics programmer", "game developer",
+    "sql developer", "etl developer", "bi developer",
+    "api developer", "rpa developer", "salesforce developer",
+    "intern", "internship", "trainee", "apprentice",
+    "fresher", "fresh graduate", "entry level", "entry-level",
+    "junior developer", "junior engineer",
+    "associate developer", "associate engineer",
+    "specialist programmer", "systems engineer",
+    "technology analyst", "it analyst", "business analyst",
+    "graduate engineer", "graduate trainee",
+    "member technical", "technical writer",
+    "early career", "new grad", "campus",
+    # match any "<something> developer" or "<something> engineer" patterns
 ]
 
-# ── Experience Level Patterns ─────────────────────────────────────────────────
-# Matches things like "0-2 years", "0 - 3 yrs", "1-2 Years", "Fresher"
+# ══════════════════════════════════════════════════════════════════════════════
+#  GARBAGE FILTER — aggressive to prevent false positives
+# ══════════════════════════════════════════════════════════════════════════════
+GARBAGE_CONTAINS = [
+    "cookie", "privacy", "terms and", "terms of", "disclaimer",
+    "copyright", "gdpr", "consent", "fraud", "legal",
+    "about us", "contact us", "our culture", "our values",
+    "life at", "why work", "why join", "diversity", "inclusion",
+    "social media", "newsletter", "subscribe", "talent network",
+    "follow us", "connect with", "join our", "stay connected",
+    "select language", "choose language",
+    "français", "español", "deutsch", "italiano", "português",
+    "polski", "română", "العربية", "日本語", "简体中文",
+    "explore now", "know more", "read more", "learn more",
+    "show more", "load more", "search jobs", "view all",
+    "sign in", "sign up", "log in", "register",
+    "because we", "opportunity to", "explore open",
+    "match your interest", "enhance your",
+    "e-posting", "lca ", "h1b ",
+]
+
+# Experience pattern
 EXP_PATTERN = re.compile(
-    r'(\d+)\s*[-–to]+\s*(\d+)\s*(?:years?|yrs?|yr)|'
-    r'(\d+)\s*\+?\s*(?:years?|yrs?|yr)|'
-    r'fresher|entry.?level|0\s*(?:years?|yrs?)',
+    r'(\d+)\s*[-–to]+\s*(\d+)\s*(?:years?|yrs?)|'
+    r'(\d+)\s*\+?\s*(?:years?|yrs?)|'
+    r'fresher|entry.?level',
     re.IGNORECASE
 )
 
-# ── Noise / Garbage Blacklist ─────────────────────────────────────────────────
-# Lines containing these are NOT job titles — filter them out
-BLACKLIST = [
-    "cookie", "privacy", "accept", "decline", "subscribe",
-    "sign in", "sign up", "login", "log in", "register",
-    "filter", "sort by", "search", "apply filter",
-    "clear all", "reset", "show more", "load more", "view all",
-    "back to top", "scroll", "menu", "navigation",
-    "terms", "conditions", "disclaimer", "copyright",
-    "follow us", "connect with us", "social media",
-    "about us", "contact us", "careers at", "life at",
-    "our culture", "our values", "our mission", "our story",
-    "diversity", "inclusion", "sustainability",
-    "select", "choose", "browse", "explore",
-    "page", "next", "previous", "results",
-    "share this", "bookmark", "save job", "email alert",
-    "no results", "no jobs", "try again",
-    "skip to", "jump to", "go to",
-]
-
-# Better CSS selectors that target actual job listing elements
-JOB_SELECTORS = [
-    # Specific job listing patterns (most career sites)
-    "[class*='job-title']", "[class*='job-name']", "[class*='job_title']",
-    "[class*='position-title']", "[class*='position-name']",
-    "[class*='role-title']", "[class*='role-name']",
-    "[class*='opening-title']", "[class*='vacancy-title']",
-    "[class*='listing-title']", "[class*='posting-title']",
-    "[class*='result-title']", "[class*='card-title']",
-    "[data-job-title]", "[data-automation-id='jobTitle']",
-    "[class*='jobTitle']", "[class*='JobTitle']",
-
-    # Accenture-specific
-    "[class*='cmp-teaser__title']", ".card__title",
-
-    # Generic structured elements (fallback)
-    "h2 a", "h3 a", "h4 a",
-    "li h2", "li h3", "li h4",
-    ".job-card h2", ".job-card h3",
-    "article h2", "article h3",
-    "tr td:first-child a",
-]
-
 
 def fingerprint(text: str) -> str:
-    """Create a unique hash for a job text."""
     return hashlib.md5(text.strip().lower().encode()).hexdigest()
 
 
-def is_noise(text: str) -> bool:
-    """Check if text is navigation/UI noise, not a real job."""
+def is_garbage(text: str) -> bool:
     lower = text.lower().strip()
-
-    # Too short or too long
-    if len(lower) < 5 or len(lower) > 200:
+    if len(lower) < 8 or len(lower) > 150:
         return True
-
-    # Contains newlines (likely multi-element scrape)
+    for phrase in GARBAGE_CONTAINS:
+        if phrase in lower:
+            return True
+    if len(lower.split()) <= 1:
+        return True
     if "\n" in text:
         return True
-
-    # Pure numbers or dates
     if re.match(r'^[\d\s/\-.,]+$', lower):
         return True
-
-    # Starts with common noise patterns
-    noise_starts = ["view ", "show ", "sort ", "filter", "search", "page ", "clear"]
-    if any(lower.startswith(s) for s in noise_starts):
+    ascii_count = sum(1 for c in lower if c.isascii() and c.isalpha())
+    if ascii_count < 5:
         return True
-
-    # Contains blacklisted phrases
-    for bl in BLACKLIST:
-        if bl in lower:
-            return True
-
     return False
 
 
-def matches_job_keywords(text: str) -> bool:
-    """Check if text contains at least one relevant IT job keyword."""
+def matches_job_title(text: str) -> bool:
     lower = text.lower()
-    return any(kw in lower for kw in JOB_KEYWORDS)
+    # Check explicit keywords
+    if any(kw in lower for kw in JOB_TITLE_KEYWORDS):
+        return True
+    # Also accept generic "<word> developer" or "<word> engineer" patterns
+    if re.search(r'\b\w+\s+(developer|engineer|analyst|architect|tester|designer)\b', lower):
+        return True
+    return False
 
 
 def extract_experience(text: str) -> str | None:
-    """Try to extract experience requirement from nearby text."""
     match = EXP_PATTERN.search(text)
     if not match:
         return None
@@ -178,31 +128,166 @@ def extract_experience(text: str) -> str | None:
     return "Fresher"
 
 
-def is_fresher_friendly(exp_text: str | None, full_text: str = "") -> bool:
-    """Check if a job is suitable for freshers (0-2 years experience)."""
-    # If no experience mentioned, could be fresher-friendly
+def is_fresher_friendly(exp_text: str | None) -> bool:
     if not exp_text:
-        lower = full_text.lower()
-        fresher_hints = ["fresher", "entry level", "entry-level", "intern",
-                         "trainee", "graduate", "campus", "0 year", "new grad",
-                         "junior", "jr.", "associate"]
-        return any(h in lower for h in fresher_hints) or True  # Default: include
-
-    # Parse the experience range
+        return True
     match = re.search(r'(\d+)', exp_text)
     if match:
-        min_exp = int(match.group(1))
-        return min_exp <= 2  # 0, 1, or 2 years minimum
-
+        return int(match.group(1)) <= 2
     return True
 
 
-def scrape_jobs(url: str) -> tuple[list[dict], str | None]:
-    """
-    Scrape a careers page for IT job listings relevant to freshers.
-    Returns (jobs_list, error_string).
-    jobs_list is a list of {"text": title, "id": hash, "experience": exp_str, "link": url}
-    """
+# ══════════════════════════════════════════════════════════════════════════════
+#  SITE-SPECIFIC API SCRAPERS
+#  These hit the actual JSON APIs that career sites use internally
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _scrape_workday(url: str) -> tuple[list[dict], str | None]:
+    """Scrape Workday-based career sites (Accenture, Wipro, many others)."""
+    # Workday sites have an API at /wday/cxs/<tenant>/External/jobs
+    # We need to detect the tenant from the URL
+    parsed = urlparse(url)
+    host = parsed.hostname or ""
+
+    # Try to find the Workday API endpoint
+    api_url = None
+    tenant = ""
+
+    if "accenture" in host:
+        api_url = "https://www.accenture.com/api/accenture/jobsearch/result"
+        return _scrape_accenture_api(api_url)
+    elif "wipro" in host:
+        # Wipro uses Phenom People platform
+        return _scrape_wipro_api()
+
+    return [], None
+
+
+def _scrape_accenture_api(api_url: str = None) -> tuple[list[dict], str | None]:
+    """Scrape Accenture's career API for fresher-friendly IT jobs in India."""
+    url = "https://www.accenture.com/api/accenture/jobsearch/result"
+    payload = {
+        "keyword": "",
+        "location": "India",
+        "skill": "",
+        "experience": "0to2",
+        "sortBy": "postedDate",
+        "page": 1,
+        "pageSize": 50,
+    }
+    try:
+        r = requests.post(url, json=payload, headers={
+            **HEADERS,
+            "Content-Type": "application/json",
+            "Referer": "https://www.accenture.com/in-en/careers/jobsearch",
+        }, timeout=20)
+
+        if r.status_code != 200:
+            # Fallback: try the HTML search page
+            return _scrape_html("https://www.accenture.com/in-en/careers/jobsearch")
+
+        data = r.json()
+        jobs = []
+        for item in data.get("data", data.get("jobs", data.get("results", []))):
+            title = item.get("title") or item.get("jobTitle") or item.get("name", "")
+            if not title or is_garbage(title):
+                continue
+            if not matches_job_title(title):
+                continue
+            exp = extract_experience(str(item))
+            if exp and not is_fresher_friendly(exp):
+                continue
+            link = item.get("url") or item.get("applyUrl") or item.get("detailUrl", "")
+            if link and not link.startswith("http"):
+                link = "https://www.accenture.com" + link
+
+            fid = fingerprint(title)
+            jobs.append({
+                "text": title,
+                "id": fid,
+                "experience": exp or "Not specified",
+                "link": link or "https://www.accenture.com/in-en/careers/jobsearch",
+            })
+        return jobs, None
+    except Exception as e:
+        return _scrape_html("https://www.accenture.com/in-en/careers/jobsearch")
+
+
+def _scrape_wipro_api() -> tuple[list[dict], str | None]:
+    """Scrape Wipro's career API."""
+    url = "https://careers.wipro.com/api/jobs"
+    params = {
+        "limit": 50,
+        "page": 1,
+        "sortBy": "relevance",
+        "descending": "false",
+    }
+    alt_urls = [
+        "https://careers.wipro.com/api/apply/v2/jobs",
+        "https://careers.wipro.com/api/jobs/search",
+    ]
+    try:
+        r = requests.get(url, params=params, headers={
+            **HEADERS,
+            "Accept": "application/json",
+        }, timeout=20)
+
+        if r.status_code != 200:
+            # Try alternates
+            for alt in alt_urls:
+                try:
+                    r2 = requests.get(alt, params=params, headers={
+                        **HEADERS, "Accept": "application/json"
+                    }, timeout=15)
+                    if r2.status_code == 200:
+                        r = r2
+                        break
+                except:
+                    continue
+
+        if r.status_code != 200:
+            return _scrape_html("https://careers.wipro.com/search-jobs/")
+
+        data = r.json()
+        jobs_raw = data if isinstance(data, list) else data.get("jobs", data.get("data", data.get("results", [])))
+
+        jobs = []
+        for item in (jobs_raw if isinstance(jobs_raw, list) else []):
+            title = ""
+            for key in ["title", "jobTitle", "name", "requisitionTitle", "postingTitle"]:
+                if item.get(key):
+                    title = item[key]
+                    break
+            if not title or is_garbage(title):
+                continue
+            if not matches_job_title(title):
+                continue
+            exp = extract_experience(str(item))
+            if exp and not is_fresher_friendly(exp):
+                continue
+
+            link = item.get("url") or item.get("applyUrl") or item.get("canonicalUrl", "")
+            if link and not link.startswith("http"):
+                link = "https://careers.wipro.com" + link
+
+            fid = fingerprint(title)
+            jobs.append({
+                "text": title,
+                "id": fid,
+                "experience": exp or "Not specified",
+                "link": link or "https://careers.wipro.com/search-jobs/",
+            })
+        return jobs, None
+    except Exception as e:
+        return _scrape_html("https://careers.wipro.com/search-jobs/")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  HTML SCRAPER (fallback for sites without known APIs)
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _scrape_html(url: str) -> tuple[list[dict], str | None]:
+    """Generic HTML scraper with aggressive filtering."""
     try:
         resp = requests.get(url, headers=HEADERS, timeout=20, allow_redirects=True)
         resp.raise_for_status()
@@ -211,53 +296,64 @@ def scrape_jobs(url: str) -> tuple[list[dict], str | None]:
 
     soup = BeautifulSoup(resp.text, "html.parser")
 
-    # Remove noise elements
+    # Remove ALL noise elements
     for tag in soup(["script", "style", "nav", "footer", "header", "noscript",
-                     "iframe", "svg", "form", "button", "input", "select"]):
+                     "iframe", "svg", "form", "button", "input", "select",
+                     "label", "option", "textarea", "dialog", "aside"]):
         tag.decompose()
+
+    # Remove noise by class/id
+    noise_selectors = [
+        "[class*='cookie']", "[class*='Cookie']",
+        "[class*='consent']", "[class*='Consent']",
+        "[class*='modal']", "[class*='Modal']",
+        "[class*='popup']", "[class*='Popup']",
+        "[class*='navigation']", "[class*='navbar']",
+        "[class*='sidebar']", "[class*='footer']",
+        "[class*='header']", "[class*='language']",
+        "[class*='locale']", "[class*='banner']",
+        "[role='navigation']", "[role='banner']",
+        "[role='contentinfo']", "[role='dialog']",
+    ]
+    for sel in noise_selectors:
+        for el in soup.select(sel):
+            el.decompose()
+
+    job_selectors = [
+        "[class*='job-title']", "[class*='job_title']", "[class*='jobTitle']",
+        "[class*='position-title']", "[class*='role-title']",
+        "[class*='listing-title']", "[class*='posting-title']",
+        "[data-automation-id='jobTitle']",
+        ".job-card h2", ".job-card h3", ".job-card a",
+        "[class*='job-card'] a", "[class*='job-list'] a",
+        "[class*='job-item'] a", "[class*='search-result'] h2",
+        "article h2", "article h3",
+        "li h2 a", "li h3 a",
+        "h2 a", "h3 a",
+    ]
 
     seen_texts = set()
     jobs = []
 
-    for sel in JOB_SELECTORS:
+    for sel in job_selectors:
         for el in soup.select(sel):
-            title = el.get_text(separator=" ", strip=True)
-
-            # Skip noise
-            if is_noise(title):
+            raw = el.get_text(separator=" ", strip=True)
+            if is_garbage(raw):
                 continue
-
-            # Must match at least one IT job keyword
-            if not matches_job_keywords(title):
+            if not matches_job_title(raw):
                 continue
-
-            # Clean up the title
-            title = re.sub(r'\s+', ' ', title).strip()
-
-            # Try to find experience info in parent/sibling elements
-            parent_text = ""
-            if el.parent:
-                parent_text = el.parent.get_text(separator=" ", strip=True)
-
+            title = re.sub(r'\s+', ' ', raw).strip()
+            parent_text = el.parent.get_text(separator=" ", strip=True) if el.parent else ""
             exp = extract_experience(parent_text) or extract_experience(title)
-
-            # Fresher filter: skip jobs requiring 3+ years
             if exp and not is_fresher_friendly(exp):
                 continue
-
-            # Extract link
             link = None
             if el.name == "a" and el.get("href"):
                 link = el["href"]
             elif el.find("a"):
                 link = el.find("a").get("href", "")
-
-            # Make link absolute
             if link and not link.startswith("http"):
-                from urllib.parse import urljoin
                 link = urljoin(url, link)
-
-            # Deduplicate
             fid = fingerprint(title)
             if fid not in seen_texts:
                 seen_texts.add(fid)
@@ -269,3 +365,24 @@ def scrape_jobs(url: str) -> tuple[list[dict], str | None]:
                 })
 
     return jobs, None
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  MAIN ENTRY POINT — routes to the right scraper
+# ══════════════════════════════════════════════════════════════════════════════
+
+def scrape_jobs(url: str) -> tuple[list[dict], str | None]:
+    """
+    Smart scraper that routes to API-based scraping for known sites,
+    falls back to HTML scraping for everything else.
+    """
+    host = urlparse(url).hostname or ""
+
+    # Route known sites to their API scrapers
+    if "accenture" in host:
+        return _scrape_accenture_api()
+    if "wipro" in host:
+        return _scrape_wipro_api()
+
+    # Fallback: generic HTML scraper
+    return _scrape_html(url)
